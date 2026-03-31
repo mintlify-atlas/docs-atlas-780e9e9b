@@ -1,0 +1,132 @@
+---
+title: "Installation"
+description: "Install core-js and its companion packages."
+---
+
+core-js publishes three packages to npm. Install whichever matches your use case.
+
+## core-js
+
+The global polyfill. Installs missing features directly onto built-in globals (`Promise`, `Array.prototype`, `Set`, etc.). Use this in applications.
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js@3.49.0
+```
+
+```bash yarn
+yarn add core-js@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js@3.49.0
+```
+
+</CodeGroup>
+
+## core-js-pure
+
+The pollution-free ponyfill. Exports polyfill implementations as named modules without modifying any globals. Use this in libraries or any context where you must not alter the host environment.
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js-pure@3.49.0
+```
+
+```bash yarn
+yarn add core-js-pure@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js-pure@3.49.0
+```
+
+</CodeGroup>
+
+## core-js-bundle
+
+A pre-built, minified bundle of the global polyfill. No build step is required — include it via a `<script>` tag or serve it from a CDN.
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js-bundle@3.49.0
+```
+
+```bash yarn
+yarn add core-js-bundle@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js-bundle@3.49.0
+```
+
+</CodeGroup>
+
+## Postinstall message
+
+After installation, core-js prints a funding message asking users to support the project. If this interferes with your CI output or install scripts, you can suppress it in several ways:
+
+<CodeGroup>
+
+```bash ADBLOCK flag
+ADBLOCK=true npm install
+```
+
+```bash DISABLE_OPENCOLLECTIVE flag
+DISABLE_OPENCOLLECTIVE=true npm install
+```
+
+```bash Silent log level
+npm install --loglevel silent
+```
+
+</CodeGroup>
+
+## Pinning the minor version for Babel and swc
+
+When using `@babel/preset-env` or swc with the `useBuiltIns` / `usage` option, you must set the `corejs` configuration option to the full minor version string, not just the major version number.
+
+```json babel.config.json
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "useBuiltIns": "usage",
+        "corejs": "3.49"
+      }
+    ]
+  ]
+}
+```
+
+```json .swcrc
+{
+  "env": {
+    "targets": "> 0.25%, not dead",
+    "mode": "usage",
+    "coreJs": "3.49"
+  }
+}
+```
+
+<Note>
+  Specifying `corejs: 3` instead of `corejs: '3.49'` causes Babel and swc to skip polyfills that were added in minor releases of core-js. Always pin to the minor version that matches the package you have installed.
+</Note>
+
+## Choosing the right package
+
+| Scenario | Package |
+|---|---|
+| Application that targets multiple browsers | `core-js` |
+| npm library that must not modify globals | `core-js-pure` |
+| Direct `<script>` tag without a bundler | `core-js-bundle` |
+| Babel or swc with automatic polyfill injection | `core-js` |
+| `@babel/runtime` for automatic transforms | `core-js-pure` (managed by Babel) |
+
+## Next steps
+
+Once installed, head to the [Quick Start](/quickstart) to see how to import and use core-js in your project.

@@ -1,0 +1,110 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "core-js",
+  "projectDescription": "A modular standard library for JavaScript that provides polyfills for ECMAScript features up to ES2025, stage proposals, and select Web/WHATWG APIs.",
+  "theme": "palm",
+  "primaryColor": "#ababab",
+  "lightColor": "#404040",
+  "darkColor": "#dcdcdc",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Usage",
+            "pages": [
+              "usage/entry-points",
+              "usage/babel-integration",
+              "usage/swc-integration",
+              "usage/configurator",
+              "usage/custom-build"
+            ]
+          },
+          {
+            "group": "Packages",
+            "pages": [
+              "packages/core-js",
+              "packages/core-js-pure",
+              "packages/core-js-compat",
+              "packages/core-js-builder",
+              "packages/core-js-bundle"
+            ]
+          },
+          {
+            "group": "Compatibility",
+            "pages": [
+              "compatibility/supported-engines",
+              "compatibility/browserslist"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "ECMAScript",
+            "pages": [
+              "api/es-builtins",
+              "api/es-collections",
+              "api/es-iterators",
+              "api/es-typed-arrays",
+              "api/es-promise"
+            ]
+          },
+          {
+            "group": "Proposals",
+            "pages": [
+              "api/proposals-finished",
+              "api/proposals-stage3",
+              "api/proposals-stage2-and-below"
+            ]
+          },
+          {
+            "group": "Web Standards",
+            "pages": [
+              "api/web-standards"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Polyfills for ECMAScript up to ES2025 (Promise, Symbol, Map, Set, Iterator, TypedArrays, etc.)",
+    "Support for ECMAScript proposals from Stage 0 through finished",
+    "Web/WHATWG standards polyfills (URL, structuredClone, queueMicrotask, setImmediate, etc.)",
+    "Global (core-js) and pollution-free (core-js-pure) variants",
+    "Granular per-feature imports for tree-shaking and minimal bundle size",
+    "Browserslist-powered compatibility data via core-js-compat",
+    "Custom bundle generation via core-js-builder",
+    "Integration with Babel (@babel/preset-env, @babel/runtime) and swc",
+    "Configurable polyfill aggressiveness via the configurator API",
+    "Support for Node.js, browsers, Deno, Bun, Rhino, Hermes, and other JS runtimes"
+  ],
+  "publicApiSurface": [
+    "import 'core-js'",
+    "import 'core-js/actual'",
+    "import 'core-js/stable'",
+    "import 'core-js/es'",
+    "import 'core-js/full'",
+    "import 'core-js/actual/<feature>'",
+    "import 'core-js/proposals/<proposal-name>'",
+    "import 'core-js/stage/<stage>'",
+    "import Set from 'core-js-pure/actual/set'",
+    "import Promise from 'core-js-pure/actual/promise'",
+    "compat({ targets, modules, exclude, version }) from 'core-js-compat'",
+    "getModulesListForTargetVersion(version) from 'core-js-compat'",
+    "builder({ modules, exclude, targets, format, filename, summary }) from 'core-js-builder'",
+    "configurator({ useNative, usePolyfill, useFeatureDetection }) from 'core-js/configurator'"
+  ]
+}

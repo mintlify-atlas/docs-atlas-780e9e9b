@@ -1,97 +1,99 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "core-js — Modular JavaScript Standard Library"
+description: "Polyfills for ECMAScript up to ES2025, stage proposals, and Web standards. Use every feature today, in every environment."
 ---
 
-## Setting up
+core-js is the most widely used JavaScript polyfill library. It provides modular polyfills for ECMAScript features from ES5 through ES2025, TC39 stage proposals, and select Web/WHATWG APIs — letting you use modern JavaScript everywhere, without waiting for runtime support.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install core-js and its companion packages via npm, yarn, or pnpm.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Start polyfilling in minutes with a working code example.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Entry Points" icon="door-open" href="/usage/entry-points">
+    Learn how to import only the features you need.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Babel Integration" icon="puzzle-piece" href="/usage/babel-integration">
+    Automate polyfill injection with @babel/preset-env and @babel/runtime.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What is core-js?
 
-Everything you need to create world-class documentation.
+core-js is a modular standard library for JavaScript. It includes polyfills for:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+- **ECMAScript up to ES2025** — Promise, Symbol, Map, Set, Iterator, TypedArrays, Array methods, String methods, Object methods, and hundreds more
+- **TC39 proposals** — from finished proposals (already in the language) down through Stage 0 experiments
+- **Web standards** — URL, URLSearchParams, structuredClone, queueMicrotask, setImmediate, DOMException, and iterable DOM collections
 
-## Need inspiration?
+You can load the entire library, or import only the specific features your code uses — keeping bundle sizes small and avoiding unnecessary overhead.
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Install the package">
+    ```bash
+    npm install --save core-js@3
+    ```
+  </Step>
+  <Step title="Import features you need">
+    ```js
+    // All stable ES + Web + Stage 3 proposals:
+    import 'core-js/actual';
+
+    // Or import just what you use:
+    import 'core-js/actual/promise';
+    import 'core-js/actual/array/flat-map';
+    import 'core-js/actual/set';
+    ```
+  </Step>
+  <Step title="Write modern JavaScript everywhere">
+    ```js
+    Promise.try(() => 42).then(it => console.log(it)); // => 42
+
+    [1, 2].flatMap(it => [it, it]); // => [1, 1, 2, 2]
+
+    Array.from(new Set([1, 2, 3]).union(new Set([3, 4, 5]))); // => [1, 2, 3, 4, 5]
+    ```
+  </Step>
+</Steps>
+
+## Choose your package
+
+<CardGroup cols={2}>
+  <Card title="core-js" icon="globe" href="/packages/core-js">
+    The global polyfill — patches built-in prototypes and constructors directly. Best for application code.
+  </Card>
+  <Card title="core-js-pure" icon="shield" href="/packages/core-js-pure">
+    Pollution-free variant — exports standalone functions without touching globals. Best for library authors.
+  </Card>
+  <Card title="core-js-compat" icon="table" href="/packages/core-js-compat">
+    Compatibility data — get a list of required core-js modules for any browserslist target.
+  </Card>
+  <Card title="core-js-builder" icon="hammer" href="/packages/core-js-builder">
+    Custom build — generate a targeted bundle with only the polyfills your environments need.
+  </Card>
+</CardGroup>
+
+## Explore the API
+
+<CardGroup cols={3}>
+  <Card title="ECMAScript builtins" icon="code" href="/api/es-builtins">
+    Object, Array, String, Number, Math, Date, Function, Error
+  </Card>
+  <Card title="Collections" icon="layer-group" href="/api/es-collections">
+    Map, Set, WeakMap, WeakSet, WeakRef
+  </Card>
+  <Card title="Iterators" icon="arrows-rotate" href="/api/es-iterators">
+    Iterator helpers, AsyncIterator, for-of support
+  </Card>
+  <Card title="Typed Arrays" icon="table-cells" href="/api/es-typed-arrays">
+    Int8Array, Uint8Array, Float32Array, and all TypedArray methods
+  </Card>
+  <Card title="Promise" icon="clock" href="/api/es-promise">
+    Promise, Promise.all, Promise.allSettled, Promise.any, Promise.try
+  </Card>
+  <Card title="Web Standards" icon="browser" href="/api/web-standards">
+    URL, structuredClone, queueMicrotask, setImmediate, DOMException
+  </Card>
+</CardGroup>

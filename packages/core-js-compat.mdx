@@ -1,0 +1,237 @@
+---
+title: 'core-js-compat'
+description: 'Compatibility data and tooling for core-js. Query which core-js modules are required for a given set of target environments.'
+---
+
+`core-js-compat` contains machine-readable data describing which `core-js` modules are needed for which environments. It is the data layer used by tools like `@babel/preset-env` and `swc` to generate optimised polyfill lists automatically.
+
+You can also use it directly to answer the question: *"Which `core-js` modules do I need to support these browsers?"*
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install --save-dev core-js-compat
+```
+
+```bash yarn
+yarn add --dev core-js-compat
+```
+
+```bash pnpm
+pnpm add --save-dev core-js-compat
+```
+
+</CodeGroup>
+
+## Usage
+
+### Basic example
+
+```js
+import compat from 'core-js-compat';
+
+const {
+  list,    // array of required module names
+  targets, // object mapping each module to the engines that need it
+} = compat({
+  targets: '> 1%',           // browserslist query or min-version object
+  modules: [                 // optional: filter to these entry points / modules
+    'core-js/actual',        //   - an entry point
+    'esnext.array.unique-by', //   - a module name or prefix
+    /^web\./,                //   - a regex matched against the module name
+  ],
+  exclude: [                 // optional: exclude specific modules
+    'web.atob',
+  ],
+  version: '3.49',           // core-js version to evaluate against (default: latest)
+  inverse: false,            // when true: return modules NOT needed for these targets
+});
+
+console.log(targets);
+```
+
+### Example output
+
+```js
+// targets output (truncated to show structure)
+{
+  'es.error.cause':                { ios: '14.5-14.8' },
+  'es.aggregate-error.cause':      { ios: '14.5-14.8' },
+  'es.array.at':                   { ios: '14.5-14.8' },
+  'es.array.find-last':            { firefox: '100', ios: '14.5-14.8' },
+  'es.array.find-last-index':      { firefox: '100', ios: '14.5-14.8' },
+  'es.array.includes':             { firefox: '100' },
+  'es.array.push':                 { chrome: '100', edge: '101', ios: '14.5-14.8', safari: '15.4' },
+  'es.array.unshift':              { ios: '14.5-14.8', safari: '15.4' },
+  'es.object.has-own':             { ios: '14.5-14.8' },
+  'es.regexp.flags':               { chrome: '100', edge: '101' },
+  'es.string.at-alternative':      { ios: '14.5-14.8' },
+  'es.typed-array.at':             { ios: '14.5-14.8' },
+  'es.typed-array.find-last':      { firefox: '100', ios: '14.5-14.8' },
+  'es.typed-array.find-last-index':{ firefox: '100', ios: '14.5-14.8' },
+  'esnext.array.group':            { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'esnext.array.to-reversed':      { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'esnext.array.unique-by':        { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'web.dom-exception.stack':       { chrome: '100', edge: '101', ios: '14.5-14.8', safari: '15.4' },
+  'web.immediate':                 { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'web.structured-clone':          { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  // ...
+}
+```
+
+## Options
+
+### `targets`
+
+Specifies the minimum environment versions to support. Accepts a [browserslist](https://github.com/browserslist/browserslist) query string or a targets object:
+
+<CodeGroup>
+
+```js browserslist query
+const { list } = compat({
+  targets: 'defaults, not IE 11, maintained node versions',
+});
+```
+
+```js targets object
+const { list } = compat({
+  targets: {
+    android: '4.0',
+    bun: '0.1.2',
+    chrome: '38',
+    'chrome-android': '18',
+    deno: '1.12',
+    edge: '13',
+    electron: '5.0',
+    firefox: '15',
+    'firefox-android': '4',
+    hermes: '0.11',
+    ie: '8',
+    ios: '13.0',
+    node: 'current',      // 'current' resolves to the running Node version
+    opera: '12',
+    'opera-android': '7',
+    phantom: '1.9',
+    quest: '5.0',
+    'react-native': '0.70',
+    rhino: '1.7.13',
+    safari: '14.0',
+    samsung: '14.0',
+    esmodules: true,      // targets browsers that support ES Modules
+    browsers: '> 0.25%', // browserslist query layered inside the object
+  },
+});
+```
+
+</CodeGroup>
+
+### `modules`
+
+Optional. Restricts the result to a subset of `core-js` modules. Accepts a string, regex, or array of either:
+
+```js
+modules: [
+  'core-js/actual',         // entry point — expands to all modules under that namespace
+  'esnext.array.unique-by', // exact module name or name prefix
+  /^web\./,                 // regex matched against module names
+]
+```
+
+### `exclude`
+
+Optional. Works the same as `modules` but removes matching entries from the result.
+
+```js
+exclude: ['web.atob', /^esnext\.reflect\./]
+```
+
+### `version`
+
+The `core-js` version to evaluate data against. Defaults to the latest version shipped with the package.
+
+```js
+version: '3.49'
+```
+
+### `inverse`
+
+When `true`, returns modules that are **not** required for the target environments — useful for auditing or generating an exclusion list.
+
+```js
+inverse: true
+```
+
+## Additional exports
+
+`core-js-compat` exposes several lower-level exports for advanced use:
+
+<CodeGroup>
+
+```js ESM
+import compat, {
+  data,
+  entries,
+  modules,
+  getModulesListForTargetVersion,
+} from 'core-js-compat';
+```
+
+```js CommonJS
+const {
+  compat,
+  data,
+  entries,
+  modules,
+  getModulesListForTargetVersion,
+} = require('core-js-compat');
+```
+
+</CodeGroup>
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `compat` (default) | `Function` | The main query function — same as the default import |
+| `data` | `Object` | Full compatibility data: `{ [ModuleName]: { [EngineName]: EngineVersion } }` |
+| `entries` | `Object` | Map of entry points to module lists: `{ [EntryPoint]: Array<ModuleName> }` |
+| `modules` | `Array` | Complete list of all `core-js` module names |
+| `getModulesListForTargetVersion` | `Function` | Returns the modules available in a specific `core-js` version |
+
+### `getModulesListForTargetVersion`
+
+```js
+import { getModulesListForTargetVersion } from 'core-js-compat';
+
+const modules = getModulesListForTargetVersion('3.49');
+// => ['es.array.at', 'es.array.find-last', ...]
+```
+
+### Direct sub-path requires
+
+Each export is also available as a standalone require:
+
+```js
+require('core-js-compat/compat')({ targets, modules, version });
+require('core-js-compat/data');
+require('core-js-compat/entries');
+require('core-js-compat/modules');
+require('core-js-compat/get-modules-list-for-target-version')('3.49');
+```
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Build tool integration" icon="wrench">
+    Used internally by `@babel/preset-env` and `swc` to determine which `core-js` modules to inject for a given browser target.
+  </Card>
+  <Card title="Custom bundle generation" icon="package">
+    Feed the output `list` directly into [`core-js-builder`](/packages/core-js-builder) to produce a trimmed bundle containing only what your targets need.
+  </Card>
+  <Card title="Compatibility auditing" icon="magnifying-glass">
+    Use the `targets` output to understand exactly which browsers or environments require each polyfill — useful for prioritising support decisions.
+  </Card>
+  <Card title="Version migration" icon="arrow-up">
+    Use `getModulesListForTargetVersion` to compare module availability across `core-js` versions before upgrading.
+  </Card>
+</CardGroup>

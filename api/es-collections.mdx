@@ -1,0 +1,269 @@
+---
+title: "Collections"
+description: "Polyfills for Map, Set, WeakMap, WeakSet, and WeakRef."
+---
+
+core-js provides full implementations of ES2015+ collection types, with O(1) lookup in legacy environments. Native collections are used when available — polyfills only patch missing methods or fix incorrect behavior.
+
+## Map
+
+```javascript
+import 'core-js/actual/map';
+```
+
+Full `Map` implementation with iteration, plus newer proposal methods `getOrInsert`, `getOrInsertComputed`, and `Map.groupBy`.
+
+### Basic usage
+
+```javascript
+import 'core-js/actual/map';
+
+const array = [1];
+const map = new Map([['a', 1], [42, 2]]);
+map.set(array, 3).set(true, 4);
+
+map.size;         // => 4
+map.has(array);   // => true
+map.has([1]);     // => false  (reference equality)
+map.get(array);   // => 3
+
+map.forEach((val, key) => {
+  console.log(val); // => 1, 2, 3, 4
+  console.log(key); // => 'a', 42, [1], true
+});
+
+map.delete(array);
+map.size;          // => 3
+map.get(array);    // => undefined
+
+Array.from(map);   // => [['a', 1], [42, 2], [true, 4]]
+```
+
+### Iteration
+
+```javascript
+const m = new Map([['a', 1], ['b', 2], ['c', 3]]);
+
+for (let [key, value] of m) {
+  console.log(key, value); // => 'a' 1, 'b' 2, 'c' 3
+}
+
+for (let value of m.values()) console.log(value); // => 1, 2, 3
+for (let key of m.keys()) console.log(key);       // => 'a', 'b', 'c'
+for (let [k, v] of m.entries()) console.log(k, v);
+```
+
+### Map.groupBy
+
+Groups items from an iterable into a `Map` by a computed key.
+
+```javascript
+import 'core-js/actual/map/group-by';
+
+const map = Map.groupBy([1, 2, 3, 4, 5], it => it % 2);
+map.get(1); // => [1, 3, 5]
+map.get(0); // => [2, 4]
+```
+
+### getOrInsert / getOrInsertComputed
+
+Insert a value only if the key does not already exist. Avoids a has/set pattern.
+
+```javascript
+import 'core-js/actual/map/get-or-insert';
+import 'core-js/actual/map/get-or-insert-computed';
+
+const m = new Map([['a', 1]]);
+
+m.getOrInsert('a', 2); // => 1  (key exists, value not replaced)
+m.getOrInsert('b', 3); // => 3  (key did not exist, inserted)
+
+m.getOrInsertComputed('a', key => key); // => 1  (key exists, no computation)
+m.getOrInsertComputed('c', key => key); // => 'c'  (key inserted with computed value)
+
+console.log(m); // => Map { 'a': 1, 'b': 3, 'c': 'c' }
+```
+
+---
+
+## Set
+
+```javascript
+import 'core-js/actual/set';
+```
+
+Full `Set` implementation with ES2024 set composition methods.
+
+### Basic usage
+
+```javascript
+import 'core-js/actual/set';
+
+const set = new Set(['a', 'b', 'a', 'c']);
+set.add('d').add('b').add('e');
+
+set.size;        // => 5
+set.has('b');    // => true
+
+set.forEach(it => console.log(it)); // => 'a', 'b', 'c', 'd', 'e'
+
+set.delete('b');
+set.size;        // => 4
+set.has('b');    // => false
+
+Array.from(set); // => ['a', 'c', 'd', 'e']
+```
+
+### Set composition methods (ES2024)
+
+These methods accept any set-like object (anything with `size`, `has`, and `keys`).
+
+<Tabs>
+  <Tab title="union / intersection / difference">
+    ```javascript
+    import 'core-js/actual/set/union';
+    import 'core-js/actual/set/intersection';
+    import 'core-js/actual/set/difference';
+
+    const a = new Set([1, 2, 3]);
+    const b = new Set([3, 4, 5]);
+
+    a.union(b);        // => Set {1, 2, 3, 4, 5}
+    a.intersection(b); // => Set {3}
+    a.difference(b);   // => Set {1, 2}
+    ```
+  </Tab>
+  <Tab title="symmetricDifference">
+    ```javascript
+    import 'core-js/actual/set/symmetric-difference';
+
+    new Set([1, 2, 3]).symmetricDifference(new Set([3, 4, 5]));
+    // => Set {1, 2, 4, 5}
+    ```
+  </Tab>
+  <Tab title="subset / superset / disjoint">
+    ```javascript
+    import 'core-js/actual/set/is-subset-of';
+    import 'core-js/actual/set/is-superset-of';
+    import 'core-js/actual/set/is-disjoint-from';
+
+    new Set([1, 2, 3]).isSubsetOf(new Set([5, 4, 3, 2, 1]));   // => true
+    new Set([5, 4, 3, 2, 1]).isSupersetOf(new Set([1, 2, 3])); // => true
+    new Set([1, 2, 3]).isDisjointFrom(new Set([4, 5, 6]));     // => true
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## WeakMap
+
+```javascript
+import 'core-js/actual/weak-map';
+```
+
+A collection of key/value pairs where keys must be objects or registered symbols, and entries are not prevented from garbage collection.
+
+```javascript
+import 'core-js/actual/weak-map';
+
+const a = [1];
+const b = [2];
+const c = [3];
+
+const weakmap = new WeakMap([[a, 1], [b, 2]]);
+weakmap.set(c, 3).set(b, 4);
+
+weakmap.has(a);   // => true
+weakmap.has([1]); // => false  (different reference)
+weakmap.get(a);   // => 1
+
+weakmap.delete(a);
+weakmap.get(a);   // => undefined
+```
+
+### Private data pattern
+
+`WeakMap` is commonly used to attach private data to objects without exposing it.
+
+```javascript
+const names = new WeakMap();
+
+class Person {
+  constructor(name) {
+    names.set(this, name);
+  }
+  getName() {
+    return names.get(this);
+  }
+}
+
+const person = new Person('Alice');
+person.getName(); // => 'Alice'
+for (let key in person) console.log(key); // => only 'getName'
+```
+
+### getOrInsert / getOrInsertComputed
+
+```javascript
+import 'core-js/actual/weak-map/get-or-insert';
+import 'core-js/actual/weak-map/get-or-insert-computed';
+
+const key = {};
+const wm = new WeakMap([[key, 1]]);
+
+wm.getOrInsert(key, 2);                  // => 1  (key exists)
+wm.getOrInsert({}, 99);                  // => 99 (new key inserted)
+
+wm.getOrInsertComputed({}, k => 'val');  // => 'val'
+```
+
+<Warning>
+  `WeakMap` polyfills store values as hidden properties of keys. This works correctly in most cases but it is preferable to store a collection for longer than its keys. Native symbols as `WeakMap` keys cannot be properly polyfilled without memory leaks.
+</Warning>
+
+---
+
+## WeakSet
+
+```javascript
+import 'core-js/actual/weak-set';
+```
+
+A collection of objects (or registered symbols) held weakly — membership does not prevent garbage collection.
+
+```javascript
+import 'core-js/actual/weak-set';
+
+const a = [1];
+const b = [2];
+const c = [3];
+
+const weakset = new WeakSet([a, b, a]);
+weakset.add(c).add(b).add(c);
+
+weakset.has(b);   // => true
+weakset.has([2]); // => false  (different reference)
+
+weakset.delete(b);
+weakset.has(b);   // => false
+```
+
+---
+
+## WeakRef and FinalizationRegistry
+
+<Note>
+  `WeakRef` and `FinalizationRegistry` are not polyfilled by core-js. They rely on GC behavior that cannot be faithfully emulated in JavaScript. Use them only in environments that support them natively (all modern browsers and Node.js 14.6+).
+</Note>
+
+```javascript
+// Native — no polyfill needed in modern environments
+const ref = new WeakRef(someObject);
+const obj = ref.deref(); // returns the object or undefined if collected
+
+const registry = new FinalizationRegistry(value => {
+  console.log(`${value} was collected`);
+});
+registry.register(someObject, 'myObject');
+```

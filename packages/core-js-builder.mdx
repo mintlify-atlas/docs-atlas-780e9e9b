@@ -1,0 +1,200 @@
+---
+title: 'core-js-builder'
+description: 'Generate a custom core-js bundle containing only the polyfills you need, filtered by feature and target environment.'
+---
+
+`core-js-builder` lets you produce a trimmed `core-js` bundle tailored to your exact feature set and target environments. Instead of shipping every polyfill, you include only the ones actually needed.
+
+It accepts the same `modules`, `exclude`, and `targets` format as [`core-js-compat`](/packages/core-js-compat) and uses [Rollup](https://rollupjs.org) internally to produce the output.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install --save-dev core-js-builder
+```
+
+```bash yarn
+yarn add --dev core-js-builder
+```
+
+```bash pnpm
+pnpm add --save-dev core-js-builder
+```
+
+</CodeGroup>
+
+## Usage
+
+### Full example
+
+```js
+import builder from 'core-js-builder';
+
+const bundle = await builder({
+  // entry points / modules / namespaces, or an array of them
+  // accepts strings, regex, or a mix — default: all core-js modules
+  modules: ['core-js/actual', /^esnext\.reflect\./],
+
+  // modules to exclude — same format as `modules`
+  exclude: [/^es\.math\./, 'es.number.constructor'],
+
+  // browserslist query or core-js-compat targets object
+  targets: '> 0.5%, not dead, ie 9-11',
+
+  // optional: print a summary of the generated bundle
+  summary: {
+    // log to the console; set true to enable all fields, or pick individually
+    console: { size: true, modules: false },
+    // embed a comment in the output file
+    comment: { size: false, modules: true },
+  },
+
+  // output format: 'bundle' (default), 'cjs', or 'esm'
+  format: 'bundle',
+
+  // optional: write output to this path; omit to skip file creation
+  filename: '/path/to/my-polyfills.js',
+});
+
+// `bundle` is a string containing the generated code
+console.log(bundle);
+```
+
+### Minimal example
+
+```js
+import builder from 'core-js-builder';
+
+const bundle = await builder({
+  targets: 'defaults',
+  filename: './polyfills.js',
+});
+```
+
+## Options
+
+### `modules`
+
+Which `core-js` features to include. Accepts a string, regex, or array of either. Uses the same format as [`core-js-compat` `modules`](/packages/core-js-compat#modules).
+
+Defaults to all `core-js` modules when omitted.
+
+```js
+modules: [
+  'core-js/actual',         // include everything under the actual namespace
+  /^esnext\.reflect\./,     // include all esnext.reflect.* modules
+  'es.array.find-last',     // include a single module
+]
+```
+
+### `exclude`
+
+Modules to remove from the result after applying `modules`. Same format as `modules`.
+
+```js
+exclude: [
+  /^es\.math\./,            // remove all Math polyfills
+  'es.number.constructor',  // remove Number constructor polyfill
+]
+```
+
+### `targets`
+
+Optional. A [browserslist](https://github.com/browserslist/browserslist) query or a [`core-js-compat` targets object](/packages/core-js-compat#targets-option). When provided, only modules actually needed by the target environments are included.
+
+Omit to include all selected modules regardless of environment support.
+
+```js
+targets: '> 0.5%, not dead, ie 9-11'
+```
+
+### `summary`
+
+Optional. Controls how a summary of the bundle is reported.
+
+```js
+summary: {
+  console: { size: true, modules: true },  // print to stdout
+  comment: { size: true, modules: false }, // embed in output file as a comment
+}
+```
+
+Set a key to `true` to enable all fields for that output:
+
+```js
+summary: {
+  console: true, // equivalent to { size: true, modules: true }
+}
+```
+
+### `format`
+
+Output format. Defaults to `'bundle'`.
+
+| Value | Description |
+|-------|-------------|
+| `'bundle'` | A self-contained IIFE suitable for `<script>` tags or direct browser use |
+| `'cjs'` | CommonJS — produces `require()` imports of individual modules rather than bundling them |
+| `'esm'` | ES modules — produces `import` statements of individual modules rather than bundling them |
+
+<Note>
+  When `format` is `'cjs'` or `'esm'`, the result is **not** bundled. It contains import/require statements pointing at the individual `core-js` module files, which must be resolvable in the target environment.
+</Note>
+
+### `filename`
+
+Optional. Path to write the output to. If omitted, the file is not written to disk and the bundle is only returned as a string.
+
+```js
+filename: path.resolve(__dirname, 'dist/polyfills.js')
+```
+
+## TypeScript
+
+When importing `core-js-builder` from TypeScript, set `esModuleInterop: true` in your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "esModuleInterop": true
+  }
+}
+```
+
+This allows the default import syntax (`import builder from 'core-js-builder'`) to work correctly.
+
+## How it works
+
+<Steps>
+  <Step title="Resolve modules">
+    `core-js-builder` expands your `modules` and `exclude` inputs into a flat list of individual `core-js` module names using the same logic as `core-js-compat`.
+  </Step>
+  <Step title="Filter by targets">
+    If `targets` is provided, the list is further filtered to only the modules that are actually missing in the specified environments (via `core-js-compat`).
+  </Step>
+  <Step title="Bundle with Rollup">
+    The filtered module list is passed to Rollup, which produces a single output file (for `bundle` format) or a set of import statements (for `cjs`/`esm` format).
+  </Step>
+  <Step title="Write output">
+    If `filename` is specified, the result is written to disk. The bundle string is also returned from the `await builder(...)` call regardless.
+  </Step>
+</Steps>
+
+## When to use `core-js-builder`
+
+<CardGroup cols={2}>
+  <Card title="Custom bundle for legacy environments" icon="browser">
+    Generate a bundle containing only the polyfills needed for IE 9–11 or other specific legacy targets, keeping bundle size as small as possible.
+  </Card>
+  <Card title="CDN self-hosting" icon="cloud">
+    Produce a standalone IIFE bundle to host on your own CDN rather than depending on a third-party service.
+  </Card>
+  <Card title="Feature-gated polyfilling" icon="filter">
+    Include only a specific namespace (e.g., `core-js/actual`) or a subset of proposals, excluding anything your codebase does not use.
+  </Card>
+  <Card title="Build pipeline integration" icon="gear">
+    Incorporate polyfill generation as a step in your CI/CD pipeline, regenerating the bundle whenever target configurations change.
+  </Card>
+</CardGroup>

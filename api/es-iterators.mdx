@@ -1,0 +1,271 @@
+---
+title: "Iterators"
+description: "Iterator helpers and AsyncIterator support."
+---
+
+core-js polyfills the `Iterator` helpers proposal (finished, ES2025) and the `AsyncIterator` helpers proposal (stage 2), both of which add functional-style methods directly to iterator objects.
+
+## Iterator helpers
+
+```javascript
+import 'core-js/actual/iterator';
+```
+
+Or import individual entry points:
+
+```javascript
+import 'core-js/actual/iterator/from';
+import 'core-js/actual/iterator/concat';
+import 'core-js/actual/iterator/drop';
+import 'core-js/actual/iterator/every';
+import 'core-js/actual/iterator/filter';
+import 'core-js/actual/iterator/find';
+import 'core-js/actual/iterator/flat-map';
+import 'core-js/actual/iterator/for-each';
+import 'core-js/actual/iterator/map';
+import 'core-js/actual/iterator/reduce';
+import 'core-js/actual/iterator/some';
+import 'core-js/actual/iterator/take';
+import 'core-js/actual/iterator/to-array';
+```
+
+### Iterator.from
+
+Wraps any iterable or iterator object in an `Iterator` instance that has the helper methods.
+
+```javascript
+import 'core-js/actual/iterator/from';
+
+// Wrap a custom iterator-like object:
+Iterator.from({
+  next: () => ({ done: Math.random() > 0.9, value: Math.random() * 10 | 0 }),
+}).toArray(); // => e.g. [7, 6, 3, 0, 2, 8]
+
+// Wrap a built-in iterable:
+Iterator.from([1, 2, 3]).map(x => x * 2).toArray(); // => [2, 4, 6]
+```
+
+### Iterator.concat
+
+Lazily concatenates multiple iterables or iterators into a single iterator.
+
+```javascript
+import 'core-js/actual/iterator/concat';
+
+Iterator.concat(
+  [0, 1].values(),
+  [2, 3],
+  (function* () { yield 4; yield 5; })()
+).toArray(); // => [0, 1, 2, 3, 4, 5]
+```
+
+### Prototype methods
+
+All iterator prototype methods are lazy — they return new iterators and do not consume the source until you pull values.
+
+<AccordionGroup>
+  <Accordion title="map">
+    Transforms each value using a mapping function.
+
+    ```javascript
+    [1, 2, 3].values().map(x => x ** 2).toArray(); // => [1, 4, 9]
+    ```
+  </Accordion>
+  <Accordion title="filter">
+    Keeps only values for which the predicate returns `true`.
+
+    ```javascript
+    [1, 2, 3, 4, 5].values().filter(x => x % 2 === 0).toArray(); // => [2, 4]
+    ```
+  </Accordion>
+  <Accordion title="take / drop">
+    Limit or skip a given number of values.
+
+    ```javascript
+    [1, 2, 3, 4, 5].values().take(3).toArray(); // => [1, 2, 3]
+    [1, 2, 3, 4, 5].values().drop(2).toArray(); // => [3, 4, 5]
+    ```
+  </Accordion>
+  <Accordion title="flatMap">
+    Maps each value to an iterable and flattens one level.
+
+    ```javascript
+    [1, 2, 3].values()
+      .flatMap(x => [x, x * 10])
+      .toArray(); // => [1, 10, 2, 20, 3, 30]
+    ```
+  </Accordion>
+  <Accordion title="reduce">
+    Reduces the iterator to a single value.
+
+    ```javascript
+    [1, 2, 3, 4].values().reduce((acc, x) => acc + x, 0); // => 10
+    ```
+  </Accordion>
+  <Accordion title="toArray">
+    Consumes the iterator and collects all values into an array.
+
+    ```javascript
+    [1, 2, 3].values().toArray(); // => [1, 2, 3]
+    ```
+  </Accordion>
+  <Accordion title="forEach">
+    Calls a function for each value, consuming the iterator.
+
+    ```javascript
+    [1, 2, 3].values().forEach(x => console.log(x)); // logs 1, 2, 3
+    ```
+  </Accordion>
+  <Accordion title="some / every / find">
+    Short-circuit boolean queries.
+
+    ```javascript
+    [1, 2, 3].values().some(x => x > 2);   // => true
+    [1, 2, 3].values().every(x => x > 0);  // => true
+    [1, 2, 3].values().find(x => x > 1);   // => 2
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Chained example
+
+```javascript
+import 'core-js/actual/iterator';
+
+[1, 2, 3, 4, 5, 6, 7].values()
+  .drop(1)
+  .take(5)
+  .filter(it => it % 2)
+  .map(it => it ** 2)
+  .toArray(); // => [9, 25]
+```
+
+<Warning>
+  In the pure `core-js-pure` variant, new `%IteratorPrototype%` methods are not added to the real prototype to avoid pollution. Use `Iterator.from([]).map(fn)` instead of `[].values().map(fn)`.
+</Warning>
+
+---
+
+## AsyncIterator helpers
+
+```javascript
+import 'core-js/actual/async-iterator';
+```
+
+Or import individual entry points:
+
+```javascript
+import 'core-js/actual/async-iterator/from';
+import 'core-js/actual/async-iterator/drop';
+import 'core-js/actual/async-iterator/every';
+import 'core-js/actual/async-iterator/filter';
+import 'core-js/actual/async-iterator/find';
+import 'core-js/actual/async-iterator/flat-map';
+import 'core-js/actual/async-iterator/for-each';
+import 'core-js/actual/async-iterator/map';
+import 'core-js/actual/async-iterator/reduce';
+import 'core-js/actual/async-iterator/some';
+import 'core-js/actual/async-iterator/take';
+import 'core-js/actual/async-iterator/to-array';
+```
+
+`AsyncIterator` helpers mirror the synchronous `Iterator` helpers but return `Promise`-based results and accept async callback functions.
+
+### AsyncIterator.from
+
+Wraps an async iterable, sync iterable, or async iterator.
+
+```javascript
+import 'core-js/actual/async-iterator/from';
+
+async function* generate() {
+  yield 1; yield 2; yield 3;
+}
+
+await AsyncIterator.from(generate()).map(x => x * 2).toArray();
+// => [2, 4, 6]
+```
+
+### toAsync
+
+Converts a synchronous iterator to an async one.
+
+```javascript
+import 'core-js/actual/iterator/to-async';
+
+await [1, 2, 3].values()
+  .toAsync()
+  .map(async it => it ** 2)
+  .toArray(); // => [1, 4, 9]
+```
+
+### Chained async example
+
+```javascript
+import 'core-js/actual/async-iterator';
+
+await AsyncIterator.from([1, 2, 3, 4, 5, 6, 7])
+  .drop(1)
+  .take(5)
+  .filter(it => it % 2)
+  .map(it => it ** 2)
+  .toArray(); // => [9, 25]
+```
+
+### Method signatures
+
+| Method | Return type | Description |
+|--------|-------------|-------------|
+| `AsyncIterator.from(iterable)` | `AsyncIterator` | Wraps an iterable or async iterable |
+| `.map(async fn)` | `AsyncIterator` | Transforms each value |
+| `.filter(async fn)` | `AsyncIterator` | Keeps values matching predicate |
+| `.take(n)` | `AsyncIterator` | Yields at most `n` values |
+| `.drop(n)` | `AsyncIterator` | Skips first `n` values |
+| `.flatMap(async fn)` | `AsyncIterator` | Maps and flattens one level |
+| `.reduce(async fn, init)` | `Promise<any>` | Reduces to a single value |
+| `.toArray()` | `Promise<Array>` | Collects all values |
+| `.forEach(async fn)` | `Promise<void>` | Calls `fn` for each value |
+| `.some(async fn)` | `Promise<boolean>` | Short-circuit OR |
+| `.every(async fn)` | `Promise<boolean>` | Short-circuit AND |
+| `.find(async fn)` | `Promise<any>` | First matching value |
+
+<Warning>
+  In the pure variant, `%AsyncIteratorPrototype%` methods are available only on wrappers. Use `AsyncIterator.from([]).map(fn)` rather than `[].values().toAsync().map(fn)`.
+
+  To make `async function* ()` instances `instanceof AsyncIterator`, configure the library:
+
+  ```javascript
+  const configurator = require('core-js/configurator');
+  configurator({ USE_FUNCTION_CONSTRUCTOR: true });
+  require('core-js/actual/async-iterator');
+  ```
+</Warning>
+
+---
+
+## Iterator.range
+
+`Iterator.range` is a stage 2 proposal. It is available only via the `full` entry point.
+
+```javascript
+import 'core-js/full/iterator/range';
+```
+
+Generates a lazy numeric range iterator.
+
+```javascript
+for (const i of Iterator.range(1, 10)) {
+  console.log(i); // => 1, 2, 3, 4, 5, 6, 7, 8, 9
+}
+
+for (const i of Iterator.range(1, 10, { step: 3, inclusive: true })) {
+  console.log(i); // => 1, 4, 7, 10
+}
+
+// Collect to array:
+[...Iterator.range(0, 5)]; // => [0, 1, 2, 3, 4]
+```
+
+<Note>
+  `Iterator.range` is not included in `core-js/actual` because it is still a stage 2 proposal. It requires `core-js/full/iterator/range`.
+</Note>

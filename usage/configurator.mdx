@@ -1,0 +1,144 @@
+---
+title: "Configurator"
+description: "Fine-tune which polyfills use native implementations and which force the polyfill."
+---
+
+By default, core-js checks whether a feature is available and working correctly before installing a polyfill. If the native implementation passes all checks, core-js leaves it in place. The configurator lets you override this behaviour on a per-feature basis.
+
+## When you need it
+
+Two scenarios call for the configurator:
+
+1. **Native is too strict.** core-js feature detection may reject a native implementation that is close enough for your needs. The most common example is `Promise`: core-js requires native `Promise` to support unhandled rejection tracking and `@@species`. If your environment's `Promise` passes all other checks but fails these, core-js installs its own polyfill. If you trust the native implementation and want to skip the polyfill, you can tell core-js to use native whenever it is available at all.
+
+2. **Native is knowingly broken.** Some environments have broken native implementations that pass core-js feature detection but behave incorrectly at runtime. In this case you can force the polyfill regardless of what feature detection says.
+
+## The three modes
+
+<AccordionGroup>
+  <Accordion title="useNative — prefer native, only fall back to polyfill when absent">
+    The polyfill is used only when the native implementation is completely absent. Feature detection checks are skipped; if the constructor or method exists, the native version is used as-is.
+
+    ```js
+    configurator({ useNative: ['Promise'] });
+    ```
+
+    Use this when you trust the environment's native implementation even though core-js's stricter checks would normally replace it.
+  </Accordion>
+
+  <Accordion title="usePolyfill — always use the polyfill">
+    The core-js polyfill is installed unconditionally, replacing the native implementation even when one exists and appears to work.
+
+    ```js
+    configurator({ usePolyfill: ['Array.from', 'String.prototype.padEnd'] });
+    ```
+
+    Use this when you know the native implementation is broken in a way that core-js feature detection does not catch.
+  </Accordion>
+
+  <Accordion title="useFeatureDetection — default behaviour">
+    core-js runs its full feature detection suite and uses the native implementation only if it passes every check. This is the default for all features.
+
+    ```js
+    configurator({ useFeatureDetection: ['Map', 'Set'] });
+    ```
+
+    Use this to restore the default after setting a different mode, or to be explicit in your configuration.
+  </Accordion>
+</AccordionGroup>
+
+## Full example
+
+```js
+const configurator = require('core-js/configurator');
+
+configurator({
+  useNative: ['Promise'],                                 // use native Promise if it exists, skip strict checks
+  usePolyfill: ['Array.from', 'String.prototype.padEnd'], // always use the polyfill
+  useFeatureDetection: ['Map', 'Set'],                    // default behaviour (runs feature detection)
+});
+
+require('core-js/actual');
+```
+
+## Call order
+
+<Warning>
+  The configurator **must be called before** any core-js features are imported. Polyfill installation happens at import time; settings applied afterward have no effect on already-loaded modules.
+</Warning>
+
+The safe pattern is to call the configurator in the same file as your core-js import, placed above it:
+
+```js entry.js
+const configurator = require('core-js/configurator');
+
+configurator({
+  useNative: ['Promise'],
+});
+
+require('core-js/actual'); // polyfills install here, using the settings above
+```
+
+## The `Promise` example in detail
+
+core-js requires native `Promise` to support two things beyond basic functionality:
+
+- **Unhandled rejection tracking** — the environment must fire `unhandledrejection` events when a rejection goes uncaught.
+- **`@@species`** — `Promise[Symbol.species]` must be supported for subclassing to work correctly.
+
+When either check fails, core-js replaces the native `Promise` entirely. In some environments — for instance, Node.js with custom process hooks, or environments where you are monitoring unhandled rejections through other means — the native `Promise` is functionally correct for your use case even though it fails the strict check.
+
+Setting `useNative: ['Promise']` tells core-js: "If `Promise` exists, use it. Do not replace it with the polyfill."
+
+```js
+const configurator = require('core-js/configurator');
+
+configurator({
+  useNative: ['Promise'],
+});
+
+require('core-js/actual/promise');
+```
+
+## AsyncIterator options
+
+The configurator also accepts two additional options specifically for the `AsyncIterator` polyfill.
+
+### `USE_FUNCTION_CONSTRUCTOR`
+
+By default, core-js accesses `%AsyncIteratorPrototype%` without using the `Function` constructor, which preserves compatibility with strict Content Security Policies (CSP). As a side-effect, native async generator objects will not be `instanceof AsyncIterator` in polyfilled environments.
+
+If your CSP allows `unsafe-eval` (or you have no CSP), you can set this option to `true` to get a more complete `AsyncIterator` prototype chain:
+
+```js
+const configurator = require('core-js/configurator');
+
+configurator({ USE_FUNCTION_CONSTRUCTOR: true });
+
+require('core-js/actual/async-iterator');
+
+(async function * () { /* empty */ })() instanceof AsyncIterator; // => true
+```
+
+### `AsyncIteratorPrototype`
+
+As an alternative to `USE_FUNCTION_CONSTRUCTOR`, you can pass in the real `%AsyncIteratorPrototype%` object yourself:
+
+```js
+const configurator = require('core-js/configurator');
+
+const { getPrototypeOf } = Object;
+const AsyncIteratorPrototype = getPrototypeOf(getPrototypeOf(getPrototypeOf(
+  async function * () { /* empty */ }()
+)));
+
+configurator({ AsyncIteratorPrototype });
+
+require('core-js/actual/async-iterator');
+
+(async function * () { /* empty */ })() instanceof AsyncIterator; // => true
+```
+
+## Limitations
+
+The configurator does not work with every feature. Some core-js internals depend on the polyfilled versions of other features, and overriding the default detection for those can cause core-js itself to misbehave. Use this API only for the specific features where the default behaviour is provably wrong for your environment.

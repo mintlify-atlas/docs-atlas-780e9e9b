@@ -1,0 +1,151 @@
+---
+title: 'core-js-pure'
+description: 'The pollution-free variant of core-js. Exports modern JavaScript features as named imports without modifying native globals.'
+---
+
+`core-js-pure` provides the same polyfills as [`core-js`](/packages/core-js) but does **not** modify native globals. Instead, each feature is a standalone export. This makes it safe to use in published libraries where mutating globals would affect the host application.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js-pure@3.49.0
+```
+
+```bash yarn
+yarn add core-js-pure@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js-pure@3.49.0
+```
+
+</CodeGroup>
+
+## Usage
+
+### Named imports
+
+Import the polyfilled version of any built-in directly. The import returns the polyfilled implementation regardless of what the native environment provides.
+
+```js
+import Set from 'core-js-pure/actual/set';
+import Promise from 'core-js-pure/actual/promise';
+import from from 'core-js-pure/stable/array/from';
+import flat from 'core-js-pure/stable/array/flat';
+
+from(new Set([1, 2, 3, 2, 1])); // => [1, 2, 3]
+flat([1, [2, 3], [4, [5]]], 2); // => [1, 2, 3, 4, 5]
+Promise.resolve(32).then(x => console.log(x)); // => 32
+```
+
+### Entry namespaces
+
+The same namespaces available in `core-js` work identically in `core-js-pure`:
+
+| Namespace | Import path | What it includes |
+|-----------|-------------|------------------|
+| `full` | `core-js-pure/full/…` | Everything including early-stage proposals |
+| `actual` | `core-js-pure/actual/…` | Stable ES, web standards, stage 3+ proposals — **recommended** |
+| `stable` | `core-js-pure/stable/…` | Stable ES and web standards only |
+| `es` | `core-js-pure/es/…` | Stable ECMAScript features only |
+
+### Per-method imports
+
+```js
+import Set from 'core-js-pure/full/set';
+import Set from 'core-js-pure/actual/set';
+import Set from 'core-js-pure/stable/set';
+import Set from 'core-js-pure/es/set';
+
+import findLast from 'core-js-pure/actual/array/find-last';
+import queueMicrotask from 'core-js-pure/stable/queue-microtask';
+import arrayFrom from 'core-js-pure/es/array/from';
+```
+
+## Prototype methods as static functions
+
+Because `core-js-pure` cannot patch prototypes, prototype methods are re-exported as static functions. You call them with the instance as the first argument instead of using dot syntax.
+
+```js
+// Global core-js (patches prototype — not safe in libraries)
+[1, 2, 3].findLast(n => n < 3); // works because Array.prototype is patched
+
+// core-js-pure (static equivalent — safe in libraries)
+import findLast from 'core-js-pure/actual/array/find-last';
+findLast([1, 2, 3], n => n < 3); // => 2
+```
+
+### Virtual methods with the bind operator
+
+With transpilers that support the [bind operator proposal](https://github.com/tc39/proposal-bind-operator), `core-js-pure` ships `/virtual/` entry points that restore method-call syntax without touching the prototype:
+
+```js
+import fill from 'core-js-pure/actual/array/virtual/fill';
+import findIndex from 'core-js-pure/actual/array/virtual/find-index';
+
+Array(10)::fill(0).map((a, b) => b * b)::findIndex(it => it && !(it % 8)); // => 4
+```
+
+<Warning>
+  The bind operator (`::`) is an early-stage ECMAScript proposal. Its syntax may change before standardisation. Use with caution.
+</Warning>
+
+## Automatic injection with @babel/runtime
+
+`@babel/runtime` with `corejs: 3` can replace modern JS usage with `core-js-pure` imports automatically, so you write idiomatic JS and get pollution-free polyfills for free:
+
+```json
+{
+  "plugins": [
+    ["@babel/plugin-transform-runtime", {
+      "corejs": { "version": 3, "proposals": true }
+    }]
+  ]
+}
+```
+
+Your source code stays clean:
+
+```js
+// source (what you write)
+Array.from(new Set([1, 2, 3, 2, 1]));
+[1, [2, 3], [4, [5]]].flat(2);
+Promise.resolve(32).then(x => console.log(x));
+```
+
+Babel transforms it to:
+
+```js
+// output (what gets shipped)
+import from from 'core-js-pure/stable/array/from';
+import flat from 'core-js-pure/stable/array/flat';
+import Set from 'core-js-pure/stable/set';
+import Promise from 'core-js-pure/stable/promise';
+
+from(new Set([1, 2, 3, 2, 1]));
+flat([1, [2, 3], [4, [5]]], 2);
+Promise.resolve(32).then(x => console.log(x));
+```
+
+<Warning>
+  Do not use both `@babel/preset-env` (`useBuiltIns`) and `@babel/runtime` (`corejs`) at the same time. They duplicate functionality and will cause conflicts.
+</Warning>
+
+## When to use `core-js-pure`
+
+<CardGroup cols={2}>
+  <Card title="Use core-js-pure when..." icon="check">
+    - Authoring a library or npm package
+    - You cannot control the host application's globals
+    - You need explicit, auditable imports
+    - You want zero side effects from your package
+  </Card>
+  <Card title="Use core-js instead when..." icon="x">
+    - Building an end-user application
+    - You want transparent patching of native globals
+    - You use Babel/swc auto-injection via `useBuiltIns`
+    - Prototype method syntax (`.findLast()`) is preferred
+  </Card>
+</CardGroup>

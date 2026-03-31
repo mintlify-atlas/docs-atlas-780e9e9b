@@ -1,0 +1,103 @@
+---
+title: "swc integration"
+description: "Configure swc to automatically inject core-js polyfills."
+---
+
+[swc](https://swc.rs) is a fast JavaScript/TypeScript transpiler written in Rust. It has built-in support for core-js and can inject polyfills based on your browser targets, similar to Babel's `@babel/preset-env`.
+
+## How it works
+
+swc's `env` configuration block controls core-js integration. You specify:
+
+- **`targets`** — a [browserslist](https://github.com/browserslist/browserslist) query describing the environments you need to support.
+- **`mode`** — how polyfills are injected (`entry` or `usage`).
+- **`coreJs`** — the exact version of core-js you have installed.
+
+swc uses compatibility data from [`core-js-compat`](/packages/core-js-compat) to determine which modules each target environment requires.
+
+## Configuration
+
+Add an `env` block to your `.swcrc` file:
+
+```json .swcrc
+{
+  "env": {
+    "targets": "> 0.25%, not dead",
+    "mode": "entry",
+    "coreJs": "3.49"
+  }
+}
+```
+
+## Injection modes
+
+<Tabs>
+  <Tab title="entry mode">
+    In `entry` mode, swc replaces your top-level core-js import with the specific modules required for your target environments — the same behaviour as `@babel/preset-env` with `useBuiltIns: 'entry'`.
+
+    Place a single import in your application entry point:
+
+    ```js
+    import 'core-js/actual';
+    ```
+
+    swc rewrites it to import only the modules missing from your targets.
+
+    ```json .swcrc
+    {
+      "env": {
+        "targets": "> 0.25%, not dead",
+        "mode": "entry",
+        "coreJs": "3.49"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="usage mode">
+    In `usage` mode, swc scans each file and automatically inserts polyfill imports for the features you use that are missing from your targets — no manual import required.
+
+    ```json .swcrc
+    {
+      "env": {
+        "targets": "> 0.25%, not dead",
+        "mode": "usage",
+        "coreJs": "3.49"
+      }
+    }
+    ```
+
+    <Note>
+      swc's `usage` mode does not work as reliably as Babel's equivalent. Complex usage patterns may be missed. If accurate per-file injection is critical, prefer `entry` mode or use [Babel integration](/usage/babel-integration) instead.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Choosing a core-js version
+
+Set `coreJs` to the exact minor version installed in your project. swc uses this value to look up which modules were available at that version and avoid injecting modules that did not yet exist.
+
+```bash
+npm install --save core-js@3.49.0
+```
+
+```json .swcrc
+{
+  "env": {
+    "targets": "last 2 Chrome versions, last 2 Firefox versions, IE 11",
+    "mode": "entry",
+    "coreJs": "3.49"
+  }
+}
+```
+
+## Comparison with Babel
+
+| Feature | swc | Babel (`@babel/preset-env`) |
+|---|---|---|
+| `entry` mode | yes | yes |
+| `usage` mode | partial | yes (full) |
+| Proposal support | via `core-js/proposals/*` | via `proposals: true` |
+| Speed | faster (Rust) | slower (JS) |
+| Accuracy | good | excellent |
+
+For projects where polyfill accuracy matters most — particularly when targeting many environments or relying on proposal polyfills — [Babel integration](/usage/babel-integration) offers more complete coverage.

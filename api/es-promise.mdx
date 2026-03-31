@@ -1,0 +1,292 @@
+---
+title: "Promise"
+description: "Promise polyfill including all static methods and proposals."
+---
+
+core-js provides a complete `Promise` polyfill including the constructor, all static combinators, prototype methods, and two finished proposals: `Promise.try` and `Promise.withResolvers`.
+
+## Import
+
+```javascript
+import 'core-js/actual/promise';
+```
+
+Or import individual methods:
+
+```javascript
+import 'core-js/actual/promise/all-settled';
+import 'core-js/actual/promise/any';
+import 'core-js/actual/promise/finally';
+import 'core-js/actual/promise/try';
+import 'core-js/actual/promise/with-resolvers';
+```
+
+---
+
+## Constructor
+
+```javascript
+const promise = new Promise((resolve, reject) => {
+  setTimeout(() => resolve(42), 1000);
+});
+```
+
+The executor runs synchronously. Call `resolve` to fulfill or `reject` to reject the promise.
+
+---
+
+## Prototype methods
+
+### then
+
+Attaches handlers for fulfillment and/or rejection. Returns a new promise.
+
+```javascript
+new Promise((resolve, reject) => {
+  setTimeout(resolve, 5000, Math.random() * 1000 | 0);
+})
+.then(result => {
+  console.log(result);        // e.g. => 869, after 5 sec
+  return new Promise(resolve => setTimeout(resolve, 1000, result * 2));
+})
+.then(result => {
+  console.log(result);        // => previous value doubled
+})
+.catch(error => console.log(error));
+```
+
+### catch
+
+Syntactic sugar for `.then(undefined, onRejected)`.
+
+```javascript
+Promise.reject(new Error('oops'))
+  .catch(error => console.log(error.message)); // => 'oops'
+```
+
+### finally
+
+Runs a callback when the promise settles (fulfilled or rejected) without changing the settled value.
+
+```javascript
+Promise.resolve(42)
+  .finally(() => console.log('always runs'))
+  .then(x => console.log(x)); // => 42
+
+Promise.reject(new Error('fail'))
+  .finally(() => console.log('always runs'))
+  .catch(e => console.log(e.message)); // => 'fail'
+```
+
+---
+
+## Static methods
+
+### Promise.resolve / Promise.reject
+
+Wrap a value in an already-settled promise.
+
+```javascript
+Promise.resolve(42).then(x => console.log(x)); // => 42
+
+Promise.reject(new Error('bad')).catch(e => console.log(e.message)); // => 'bad'
+
+// Wraps a thenable (e.g. jQuery Deferred) in a native Promise:
+Promise.resolve($.getJSON('/data.json')).then(data => console.log(data));
+```
+
+### Promise.all
+
+Waits for all promises to fulfill. Rejects immediately if any promise rejects.
+
+```javascript
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+Promise.all([
+  'immediate value',
+  sleep(5000).then(() => 'after 5s'),
+  sleep(10000).then(() => 'after 10s'),
+]).then(([a, b, c]) => {
+  console.log(a, b, c); // => 'immediate value', 'after 5s', 'after 10s'
+});
+```
+
+### Promise.race
+
+Settles with the first promise to settle (fulfilled or rejected).
+
+```javascript
+function timeLimit(promise, seconds) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(reject, seconds * 1000, new Error(`Timeout after ${seconds}s`))
+    ),
+  ]);
+}
+
+timeLimit(sleep(5000).then(() => 'done'), 10)
+  .then(x => console.log(x));  // => 'done', after 5s
+
+timeLimit(sleep(15000).then(() => 'done'), 10)
+  .catch(e => console.log(e.message)); // => 'Timeout after 10s'
+```
+
+### Promise.allSettled
+
+Waits for all promises to settle and returns an array of outcome descriptors. Never rejects.
+
+```javascript
+Promise.allSettled([
+  Promise.resolve(1),
+  Promise.reject(2),
+  Promise.resolve(3),
+]).then(results => console.log(results));
+// => [
+//   { status: 'fulfilled', value: 1 },
+//   { status: 'rejected',  reason: 2 },
+//   { status: 'fulfilled', value: 3 },
+// ]
+```
+
+### Promise.any
+
+Fulfills with the first promise to fulfill. Rejects with an `AggregateError` only if every promise rejects.
+
+```javascript
+Promise.any([
+  Promise.resolve(1),
+  Promise.reject(2),
+  Promise.resolve(3),
+]).then(console.log); // => 1
+
+Promise.any([
+  Promise.reject(1),
+  Promise.reject(2),
+  Promise.reject(3),
+]).catch(({ errors }) => console.log(errors)); // => [1, 2, 3]
+```
+
+---
+
+## Promise.try (ES2025)
+
+Calls a function and always returns a promise — useful when you don't know whether a function is synchronous or asynchronous.
+
+```javascript
+import 'core-js/actual/promise/try';
+
+// Sync function, returns fulfilled promise:
+Promise.try(() => 42)
+  .then(it => console.log(`resolved as ${it}`));
+// => 'resolved as 42'
+
+// Sync function that throws, returns rejected promise:
+Promise.try(() => { throw new Error('42'); })
+  .catch(error => console.log(`rejected as ${error}`));
+// => 'rejected as Error: 42'
+
+// Async function, passes through naturally:
+Promise.try(async () => 42)
+  .then(it => console.log(`resolved as ${it}`));
+// => 'resolved as 42'
+
+// Passes additional arguments to the function:
+Promise.try(it => it, 42)
+  .then(it => console.log(`resolved as ${it}`));
+// => 'resolved as 42'
+```
+
+<Tip>
+  `Promise.try` eliminates the need for a `try/catch` wrapper around code that might be sync or async. It ensures consistent promise-based error handling regardless of whether the callback throws synchronously.
+</Tip>
+
+---
+
+## Promise.withResolvers (ES2024)
+
+Returns an object containing a `promise` and its `resolve`/`reject` functions, so you can resolve the promise from outside the executor.
+
+```javascript
+import 'core-js/actual/promise/with-resolvers';
+
+const { promise, resolve, reject } = Promise.withResolvers();
+
+resolve(42);
+promise.then(console.log); // => 42
+```
+
+A common pattern is exposing a deferred promise to external code:
+
+```javascript
+function createDeferred() {
+  return Promise.withResolvers();
+}
+
+const deferred = createDeferred();
+
+// Some other code settles it later:
+setTimeout(() => deferred.resolve('ready'), 1000);
+
+deferred.promise.then(value => console.log(value)); // => 'ready', after 1s
+```
+
+---
+
+## Async/await compatibility
+
+The core-js `Promise` polyfill is fully compatible with `async`/`await` syntax when transpiled.
+
+```javascript
+async function run() {
+  console.log('Start');
+
+  const result = await new Promise(resolve =>
+    setTimeout(resolve, 5000, Math.random() * 1000 | 0)
+  );
+  console.log(result); // => e.g. 936, after 5s
+
+  const [a, b, c] = await Promise.all([
+    new Promise(resolve => setTimeout(resolve, 5000, 'a')),
+    new Promise(resolve => setTimeout(resolve, 15000, 'b')),
+    new Promise(resolve => setTimeout(resolve, 10000, 'c')),
+  ]);
+  console.log(a, b, c); // => 'a', 'b', 'c', after 15s
+}
+
+run().catch(console.error);
+```
+
+---
+
+## Unhandled rejection tracking
+
+In Node.js, core-js fires standard `unhandledRejection` and `rejectionHandled` events:
+
+```javascript
+process.on('unhandledRejection', (reason, promise) =>
+  console.log('unhandled', reason, promise)
+);
+process.on('rejectionHandled', promise =>
+  console.log('handled', promise)
+);
+
+const p = Promise.reject(42);
+// => unhandled 42 [object Promise]
+
+setTimeout(() => p.catch(() => {}), 1000);
+// => handled [object Promise]
+```
+
+In browsers, the same events fire on `globalThis`:
+
+```javascript
+globalThis.addEventListener('unhandledrejection', e =>
+  console.log('unhandled', e.reason, e.promise)
+);
+globalThis.addEventListener('rejectionhandled', e =>
+  console.log('handled', e.reason, e.promise)
+);
+```

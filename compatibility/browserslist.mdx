@@ -1,0 +1,179 @@
+---
+title: 'Browserslist integration'
+description: 'How to use browserslist queries and target objects with core-js-compat to determine which polyfills are required.'
+---
+
+[Browserslist](https://github.com/browserslist/browserslist) is a standard way to define a set of target browsers or runtimes using a query string. core-js integrates with browserslist through the `core-js-compat` package, which resolves browserslist queries into the exact set of core-js modules needed.
+
+## The `targets` option
+
+The `targets` option accepted by `core-js-compat` (and passed through from `@babel/preset-env`) accepts two formats: a browserslist query string or a plain object specifying minimum engine versions.
+
+### Browserslist query string
+
+Pass any valid browserslist query as a string:
+
+```js
+import compat from 'core-js-compat';
+
+const { list } = compat({
+  targets: 'defaults, not IE 11, maintained node versions',
+});
+```
+
+Common query examples:
+
+```js
+// Market share threshold
+'> 1%'
+
+// Last N versions of each browser
+'last 2 versions'
+
+// Specific browsers with exclusions
+'defaults, not IE 11, maintained node versions'
+
+// Extended coverage
+'> 0.5%, last 2 versions, Firefox ESR, not dead'
+```
+
+### Target object format
+
+Alternatively, pass an object with explicit minimum versions for each engine. All fields are optional:
+
+```js
+const { list, targets } = compat({
+  targets: {
+    android: '4.0',          // Android WebView version
+    bun: '0.1.2',            // Bun version
+    chrome: '38',            // Chrome version
+    'chrome-android': '18',  // Chrome for Android version
+    deno: '1.12',            // Deno version
+    edge: '13',              // Edge version
+    electron: '5.0',         // Electron framework version
+    firefox: '15',           // Firefox version
+    'firefox-android': '4',  // Firefox for Android version
+    hermes: '0.11',          // Hermes version
+    ie: '8',                 // Internet Explorer version
+    ios: '13.0',             // iOS Safari version
+    node: 'current',         // Node.js version; 'current' uses the running version
+    opera: '12',             // Opera version
+    'opera-android': '7',    // Opera for Android version
+    phantom: '1.9',          // PhantomJS headless browser version
+    quest: '5.0',            // Meta Quest Browser version
+    'react-native': '0.70',  // React Native version (default Hermes engine)
+    rhino: '1.7.13',         // Rhino engine version
+    safari: '14.0',          // Safari version
+    samsung: '14.0',         // Samsung Internet version
+  },
+});
+```
+
+#### The `esmodules` and `browsers` sub-keys
+
+The target object also supports two special keys:
+
+```js
+{
+  /**
+   * true: target minimum ES Modules-supporting versions of all browsers,
+   *       ignoring the `browsers` key.
+   * 'intersect': intersect the `browsers` target with browserslist's targets,
+   *              taking the maximum version.
+   */
+  esmodules: true | 'intersect',
+
+  // Nested browserslist query or object for browser targets
+  browsers: '> 0.25%',
+}
+```
+
+## What `compat()` returns
+
+The function returns two values:
+
+- **`list`** — an array of core-js module names that are required for the given targets
+- **`targets`** — an object mapping each required module name to the specific engine versions that still need it
+
+```js
+import compat from 'core-js-compat';
+
+const { list, targets } = compat({
+  targets: '> 1%',
+});
+
+console.log(targets);
+/* =>
+{
+  'es.error.cause': { ios: '14.5-14.8' },
+  'es.aggregate-error.cause': { ios: '14.5-14.8' },
+  'es.array.at': { ios: '14.5-14.8' },
+  'es.array.find-last': { firefox: '100', ios: '14.5-14.8' },
+  'es.array.find-last-index': { firefox: '100', ios: '14.5-14.8' },
+  'es.array.includes': { firefox: '100' },
+  'es.array.push': { chrome: '100', edge: '101', ios: '14.5-14.8', safari: '15.4' },
+  'es.array.unshift': { ios: '14.5-14.8', safari: '15.4' },
+  'es.object.has-own': { ios: '14.5-14.8' },
+  'es.regexp.flags': { chrome: '100', edge: '101' },
+  'es.string.at-alternative': { ios: '14.5-14.8' },
+  'es.typed-array.at': { ios: '14.5-14.8' },
+  'esnext.array.group': { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'web.dom-exception.stack': { chrome: '100', edge: '101', ios: '14.5-14.8', safari: '15.4' },
+  'web.immediate': { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  'web.structured-clone': { chrome: '100', edge: '101', firefox: '100', ios: '14.5-14.8', safari: '15.4' },
+  // ...
+}
+*/
+```
+
+## Filtering modules
+
+Use the `modules` and `exclude` options to narrow the query to a subset of core-js:
+
+```js
+const { list } = compat({
+  targets: '> 1%',
+  modules: [
+    'core-js/actual',         // entry point (expands to all modules it covers)
+    'esnext.array.unique-by', // exact module name (or prefix)
+    /^web\./,                 // regex matched against module names
+  ],
+  exclude: [
+    'web.atob',
+  ],
+  version: '3.49',            // core-js version to use; defaults to latest
+});
+```
+
+## Integration with @babel/preset-env
+
+When you configure `@babel/preset-env` with `useBuiltIns: 'usage'` or `useBuiltIns: 'entry'`, it reads your browserslist configuration and uses `core-js-compat` internally to determine which polyfills to inject. The `targets` option in `@babel/preset-env` accepts the same formats described above.
+
+```js
+// babel.config.js
+module.exports = {
+  presets: [
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.49',
+        targets: 'defaults, not IE 11, maintained node versions',
+      },
+    ],
+  ],
+};
+```
+
+<Tip>
+  You can also set `targets` as an object in your Babel config to pin specific minimum versions, bypassing the `.browserslistrc` file entirely.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="core-js-compat package" icon="package" href="/packages/core-js-compat">
+    Full API reference including additional exports like `data`, `entries`, and `getModulesListForTargetVersion`.
+  </Card>
+  <Card title="Babel integration" icon="wrench" href="/usage/babel-integration">
+    How to configure @babel/preset-env with core-js for automatic polyfill injection.
+  </Card>
+</CardGroup>

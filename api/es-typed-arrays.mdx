@@ -1,0 +1,273 @@
+---
+title: "Typed Arrays"
+description: "TypedArray polyfills including new methods."
+---
+
+core-js provides implementations and fixes for `ArrayBuffer`, `DataView`, and all Typed Array constructors. It polyfills their static and prototype methods and adds newer additions such as `toReversed`, `toSorted`, `with`, `findLast`, `findLastIndex`, base64/hex methods on `Uint8Array`, and `Float16Array`.
+
+<Note>
+  Typed Array constructor polyfills use getters/setters on each instance and are therefore slower than native implementations. They are mainly needed for IE9 and other legacy engines. All modern engines have native Typed Arrays and only require method polyfills.
+</Note>
+
+## Import
+
+```javascript
+import 'core-js/actual/typed-array';
+```
+
+Or import by constructor or method:
+
+```javascript
+import 'core-js/actual/typed-array/int8-array';
+import 'core-js/actual/typed-array/uint8-array';
+import 'core-js/actual/typed-array/uint8-clamped-array';
+import 'core-js/actual/typed-array/int16-array';
+import 'core-js/actual/typed-array/uint16-array';
+import 'core-js/actual/typed-array/int32-array';
+import 'core-js/actual/typed-array/uint32-array';
+import 'core-js/actual/typed-array/float32-array';
+import 'core-js/actual/typed-array/float64-array';
+```
+
+---
+
+## Constructors
+
+| Constructor | Element type | Bytes per element |
+|-------------|-------------|-------------------|
+| `Int8Array` | 8-bit signed integer | 1 |
+| `Uint8Array` | 8-bit unsigned integer | 1 |
+| `Uint8ClampedArray` | 8-bit unsigned integer (clamped) | 1 |
+| `Int16Array` | 16-bit signed integer | 2 |
+| `Uint16Array` | 16-bit unsigned integer | 2 |
+| `Int32Array` | 32-bit signed integer | 4 |
+| `Uint32Array` | 32-bit unsigned integer | 4 |
+| `Float32Array` | 32-bit float | 4 |
+| `Float64Array` | 64-bit float | 8 |
+| `BigInt64Array` | 64-bit signed BigInt | 8 |
+| `BigUint64Array` | 64-bit unsigned BigInt | 8 |
+
+Each constructor accepts three forms:
+
+```javascript
+new Int32Array(4);                           // length
+new Uint8ClampedArray([1, 2, 3, 666]);       // array-like or iterable — 666 clamps to 255
+new Float32Array(new Set([1, 2, 3, 2, 1])); // iterable
+new Uint8Array(buffer, byteOffset, length);  // ArrayBuffer view
+```
+
+Static methods are also available:
+
+```javascript
+Int8Array.of(1, 1.5, 5.7, 745);       // => [1, 1, 5, -23]
+Uint8Array.from([1, 1.5, 5.7, 745]);  // => [1, 1, 5, 233]
+```
+
+---
+
+## Prototype methods
+
+All typed arrays share the following prototype methods.
+
+### Indexed access and search
+
+```javascript
+import 'core-js/actual/typed-array/at';
+import 'core-js/actual/typed-array/find-last';
+import 'core-js/actual/typed-array/find-last-index';
+
+new Int32Array([1, 2, 3]).at(1);  // => 2
+new Int32Array([1, 2, 3]).at(-1); // => 3
+
+const isOdd = x => x % 2 !== 0;
+new Uint8Array([1, 2, 3, 4]).findLast(isOdd);      // => 3
+new Uint8Array([1, 2, 3, 4]).findLastIndex(isOdd); // => 2
+```
+
+Other search methods work the same as `Array`:
+
+```javascript
+const t = new Uint8Array([10, 20, 30]);
+
+t.find(x => x > 15);      // => 20
+t.findIndex(x => x > 15); // => 1
+t.includes(20);            // => true
+t.indexOf(20);             // => 1
+t.lastIndexOf(20);         // => 1
+```
+
+### Iteration
+
+```javascript
+const typed = new Uint8Array([1, 2, 3]);
+
+for (let value of typed) console.log(value);           // => 1, 2, 3
+for (let value of typed.values()) console.log(value);  // => 1, 2, 3
+for (let key of typed.keys()) console.log(key);        // => 0, 1, 2
+for (let [key, value] of typed.entries()) {
+  console.log(key, value); // => 0 1, 1 2, 2 3
+}
+
+typed.forEach(x => console.log(x)); // => 1, 2, 3
+```
+
+### Transformation
+
+```javascript
+const typed = new Uint8Array([1, 2, 3]);
+
+typed.filter(it => it % 2); // => Uint8Array [1, 3]
+typed.map(it => it * 2);    // => Uint8Array [2, 4, 6]
+typed.reduce((acc, x) => acc + x, 0); // => 6
+typed.reduceRight((acc, x) => acc + x, 0); // => 6
+typed.some(x => x > 2);    // => true
+typed.every(x => x > 0);   // => true
+typed.join(', ');           // => '1, 2, 3'
+```
+
+### Copying and slicing
+
+```javascript
+const typed = new Uint8Array([1, 2, 3]);
+
+const a = typed.slice(1);    // => Uint8Array [2, 3]
+typed.buffer === a.buffer;   // => false  (new buffer)
+
+const b = typed.subarray(1); // => Uint8Array [2, 3]
+typed.buffer === b.buffer;   // => true   (shared buffer)
+```
+
+### fill / copyWithin / set / reverse / sort
+
+```javascript
+new Uint8Array(4).fill(7);                    // => [7, 7, 7, 7]
+new Uint8Array([1,2,3,4,5]).copyWithin(0, 3); // => [4, 5, 3, 4, 5]
+
+const t = new Uint8Array(4);
+t.set([1, 2], 1); // => [0, 1, 2, 0]
+
+new Uint8Array([3, 1, 2]).sort(); // => [1, 2, 3]
+new Uint8Array([1, 2, 3]).reverse(); // => [3, 2, 1]
+```
+
+### Non-mutating methods (ES2023)
+
+```javascript
+import 'core-js/actual/typed-array/to-reversed';
+import 'core-js/actual/typed-array/to-sorted';
+import 'core-js/actual/typed-array/with';
+
+const t = new Uint8Array([3, 1, 2]);
+
+t.toSorted();     // => Uint8Array [1, 2, 3]
+t;                // => Uint8Array [3, 1, 2]  (unchanged)
+
+t.toReversed();   // => Uint8Array [2, 1, 3]
+
+new Uint8Array([1, 1, 3]).with(1, 2); // => Uint8Array [1, 2, 3]
+```
+
+---
+
+## Uint8Array base64 and hex (ES2025)
+
+```javascript
+import 'core-js/actual/typed-array/from-base64';
+import 'core-js/actual/typed-array/from-hex';
+import 'core-js/actual/typed-array/to-base64';
+import 'core-js/actual/typed-array/to-hex';
+```
+
+New in ES2025, these methods encode and decode binary data directly on `Uint8Array`.
+
+```javascript
+const arr = new Uint8Array([72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]);
+
+arr.toBase64();
+// => 'SGVsbG8gV29ybGQ='
+
+arr.toBase64({ omitPadding: true });
+// => 'SGVsbG8gV29ybGQ'
+
+arr.toHex();
+// => '48656c6c6f20576f726c64'
+
+Uint8Array.fromBase64('SGVsbG8gV29ybGQ=');
+// => Uint8Array [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+
+Uint8Array.fromHex('48656c6c6f20576f726c64');
+// => Uint8Array [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+```
+
+`fromBase64` accepts options to control the alphabet and handling of incomplete final chunks:
+
+```javascript
+Uint8Array.fromBase64('SGVsbG8gV29ybGQ', {
+  alphabet: 'base64',
+  lastChunkHandling: 'loose',
+});
+```
+
+---
+
+## Float16Array (ES2025)
+
+`Float16Array` is a new typed array for 16-bit floating-point values, introduced in ES2025 alongside `Math.f16round` and `DataView` methods.
+
+```javascript
+import 'core-js/actual/typed-array/float16-array';
+import 'core-js/actual/math/f16round';
+```
+
+```javascript
+const f16 = new Float16Array([1.5, 2.5, 3.5]);
+f16[0]; // => 1.5
+
+Math.f16round(1.337); // => 1.3369140625  (nearest float16 value)
+```
+
+`DataView` gains matching `getFloat16` / `setFloat16` methods:
+
+```javascript
+import 'core-js/actual/data-view/get-float16';
+import 'core-js/actual/data-view/set-float16';
+
+const buffer = new ArrayBuffer(2);
+const view = new DataView(buffer);
+view.setFloat16(0, 1.5, true);
+view.getFloat16(0, true); // => 1.5
+```
+
+---
+
+## ArrayBuffer
+
+```javascript
+import 'core-js/actual/array-buffer';
+```
+
+### transfer / transferToFixedLength / detached (ES2024)
+
+```javascript
+import 'core-js/actual/array-buffer/transfer';
+import 'core-js/actual/array-buffer/transfer-to-fixed-length';
+import 'core-js/actual/array-buffer/detached';
+
+const buffer = Int8Array.of(1, 2, 3, 4, 5, 6, 7, 8).buffer;
+
+buffer.byteLength; // => 8
+buffer.detached;   // => false
+
+const newBuffer = buffer.transfer(4);
+
+buffer.byteLength;    // => 0
+buffer.detached;      // => true
+newBuffer.byteLength; // => 4
+newBuffer.detached;   // => false
+
+[...new Int8Array(newBuffer)]; // => [1, 2, 3, 4]
+```
+
+<Warning>
+  `ArrayBuffer.prototype.transfer` and `transferToFixedLength` can only be polyfilled in environments that have native `structuredClone` with `ArrayBuffer` transfer support, or `MessageChannel` support.
+</Warning>

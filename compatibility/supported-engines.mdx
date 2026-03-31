@@ -1,0 +1,106 @@
+---
+title: 'Supported engines'
+description: 'Browser and runtime support matrix for core-js, and how compatibility data is organized by module.'
+---
+
+core-js aims to support all JS environments with ES3 support. Some features have a higher minimum bar — for example, certain accessors require ES5, and promises require a microtask or task scheduling mechanism.
+
+## Supported environments
+
+core-js is tested against and supports the following engines:
+
+| Engine | Notes |
+|---|---|
+| Chrome | Fully supported |
+| Firefox | Fully supported |
+| Safari | Fully supported |
+| Edge | Fully supported |
+| Internet Explorer | IE 8+ supported; IE 8 does not support setters, so some APIs have limited behavior |
+| Node.js | Fully supported; use `'current'` as the version value to target the running version |
+| Bun | Fully supported |
+| Deno | Fully supported |
+| Hermes | Fully supported |
+| React Native | Fully supported (uses Hermes as default engine) |
+| Electron | Fully supported |
+| Rhino | Fully supported |
+
+<Note>
+  Testing in IE7 and other very old engines has been discontinued. If you encounter issues with a specific engine, [open an issue](https://github.com/zloirock/core-js/issues).
+</Note>
+
+## How compatibility data is organized
+
+The [`core-js-compat`](/packages/core-js-compat) package contains the full compatibility dataset. Data is keyed by **module name** and maps to an object of engine-to-version pairs. A version entry means that engine first gained a correct native implementation at that version — so core-js needs to polyfill that module for any target older than the listed version.
+
+For example, this is what a slice of the raw data looks like:
+
+```js
+// from core-js-compat/src/data.mjs
+{
+  'es.array.at': {
+    chrome: '92',
+    edge: '92',
+    firefox: '90',
+    safari: '15.4',
+    node: '16.6.0',
+  },
+  'es.array.find-last': {
+    chrome: '97',
+    firefox: '104',
+    safari: '15.4',
+    node: '18.0.0',
+  },
+  'es.array.push': {
+    chrome: '101',
+    edge: '101',
+    ios: '15.4',
+    safari: '15.4',
+  },
+}
+```
+
+Module names follow the pattern `<namespace>.<type>.<method>`, where namespace is `es` for ECMAScript standard features, `esnext` for stage proposals, or `web` for web platform APIs.
+
+## Programmatic access via core-js-compat
+
+The `core-js-compat` package exposes the full dataset and a `compat()` function that resolves which modules a given set of targets actually needs:
+
+```js
+import compat from 'core-js-compat';
+
+const { list, targets } = compat({
+  targets: '> 1%',
+});
+
+console.log(list);
+// => ['es.array.at', 'es.array.find-last', ...]
+
+console.log(targets);
+// => {
+//   'es.array.at': { ios: '14.5-14.8' },
+//   'es.array.find-last': { firefox: '100', ios: '14.5-14.8' },
+//   ...
+// }
+```
+
+You can also access the raw data directly:
+
+```js
+const data = require('core-js-compat/data');
+// => { [ModuleName]: { [EngineName]: EngineVersion } }
+
+const modules = require('core-js-compat/modules');
+// => Array<ModuleName>
+
+const entries = require('core-js-compat/entries');
+// => { [EntryPoint]: Array<ModuleName> }
+```
+
+<CardGroup cols={2}>
+  <Card title="core-js-compat package" icon="package" href="/packages/core-js-compat">
+    Full API reference and dataset for programmatic compatibility queries.
+  </Card>
+  <Card title="Browserslist integration" icon="list" href="/compatibility/browserslist">
+    How to use browserslist queries and target objects with core-js-compat.
+  </Card>
+</CardGroup>

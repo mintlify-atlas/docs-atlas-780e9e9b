@@ -1,0 +1,157 @@
+---
+title: "Entry points"
+description: "How to import only the polyfills you need using core-js entry points."
+---
+
+core-js exposes a hierarchy of entry points so you can load exactly as much or as little as your project needs — from the full library including experimental proposals, down to a single method on a single type.
+
+## Namespace overview
+
+<CardGroup cols={2}>
+  <Card title="core-js / core-js/full" icon="circle-plus">
+    Every polyfill in the library, including all ECMAScript proposals at every stage. Use this only when you need experimental features.
+  </Card>
+  <Card title="core-js/actual" icon="circle-check">
+    Stable ES + Web Standards + Stage 3 proposals. Recommended for most projects.
+  </Card>
+  <Card title="core-js/stable" icon="circle-half-stroke">
+    Stable ECMAScript features and Web Standards only. No proposals of any kind.
+  </Card>
+  <Card title="core-js/es" icon="circle-minus">
+    Stable ECMAScript only. Excludes Web Standards such as `URL`, `structuredClone`, and `setImmediate`.
+  </Card>
+</CardGroup>
+
+| Namespace | Stable ES | Web Standards | Stage 3 proposals | Early-stage proposals |
+|---|---|---|---|---|
+| `core-js` / `core-js/full` | yes | yes | yes | yes |
+| `core-js/actual` | yes | yes | yes | no |
+| `core-js/stable` | yes | yes | no | no |
+| `core-js/es` | yes | no | no | no |
+
+<Tip>
+  The `actual` namespace is the recommended starting point. It covers all features that are either ratified or at Stage 3 — mature enough to rely on — without pulling in speculative, early-stage proposals.
+</Tip>
+
+## Loading an entire namespace
+
+```js
+// Everything, including early-stage proposals:
+import 'core-js';
+// Same as above using the explicit alias:
+import 'core-js/full';
+
+// Stable ES + Web Standards + Stage 3 proposals (recommended):
+import 'core-js/actual';
+
+// Stable ES + Web Standards only:
+import 'core-js/stable';
+
+// Stable ES only:
+import 'core-js/es';
+```
+
+## Feature-specific entry points
+
+You can scope imports to a single built-in type instead of loading an entire namespace. The same four namespace prefixes (`full`, `actual`, `stable`, `es`) are available on every feature path.
+
+```js
+// All Set-related features including early-stage proposals:
+import 'core-js/full/set';
+
+// Stable Set features + Web Standards + Stage 3 proposals:
+import 'core-js/actual/set';
+
+// Stable Set features + Web Standards:
+import 'core-js/stable/set';
+
+// Stable ES Set features only:
+import 'core-js/es/set';
+```
+
+## Method-specific entry points
+
+You can go one level deeper and import a single method. This produces the smallest possible output when only one feature is needed.
+
+```js
+// A single static method:
+import 'core-js/actual/array/find-last';
+import 'core-js/actual/array/flat-map';
+import 'core-js/es/array/from';
+
+// A single Set method (stage 3+ via actual):
+import 'core-js/full/set/intersection';
+
+// A web standard:
+import 'core-js/stable/queue-microtask';
+```
+
+## Proposal entry points
+
+Proposals that have not yet graduated to a stable namespace are available under `core-js/proposals/` (individual proposals) or `core-js/stage/` (by TC39 stage number).
+
+```js
+// A specific named proposal:
+import 'core-js/proposals/iterator-helpers';
+
+// All proposals at stage 2 or above:
+import 'core-js/stage/2';
+
+// All proposals at stage 3 or above:
+import 'core-js/stage/3';
+```
+
+## core-js-pure: pollution-free imports
+
+The `core-js-pure` package exports the same implementations without modifying any global or prototype. Use it in libraries to avoid side-effects for your consumers.
+
+Prototype methods are exposed as standalone functions:
+
+```js
+import Promise from 'core-js-pure/actual/promise';
+import Set from 'core-js-pure/actual/set';
+import from from 'core-js-pure/actual/array/from';
+import flatMap from 'core-js-pure/actual/array/flat-map';
+import structuredClone from 'core-js-pure/actual/structured-clone';
+
+Promise.try(() => 42).then(it => console.log(it)); // => 42
+from(new Set([1, 2, 3]).union(new Set([3, 4, 5]))); // => [1, 2, 3, 4, 5]
+flatMap([1, 2], it => [it, it]);                     // => [1, 1, 2, 2]
+structuredClone(new Set([1, 2, 3]));                 // => new Set([1, 2, 3])
+```
+
+The same namespace hierarchy applies to `core-js-pure`:
+
+```js
+import Set from 'core-js-pure/full/set';
+import Set from 'core-js-pure/actual/set';
+import Set from 'core-js-pure/stable/set';
+import Set from 'core-js-pure/es/set';
+```
+
+## Virtual entry points (bind operator)
+
+In the `core-js-pure` package, prototype methods can also be accessed via the `/virtual/` path. These are designed for use with the [bind operator proposal (`::`)][bind-op]:
+
+```js
+import fill from 'core-js-pure/actual/array/virtual/fill';
+import findIndex from 'core-js-pure/actual/array/virtual/find-index';
+
+Array(10)::fill(0).map((a, b) => b * b)::findIndex(it => it && !(it % 8)); // => 4
+```
+
+<Warning>
+  The bind operator (`::`) is an early-stage ECMAScript proposal. Its syntax is not yet standardised and usage in production code carries risk.
+</Warning>
+
+## Load order
+
+When using core-js with native object extension (the default global package), load all of your core-js imports at the very top of your application entry point — before any other application code runs. Some third-party libraries define their own symbols or iterators and loading core-js after them can cause conflicts.
+
+## The `modules/` path
+
+<Warning>
+  The `core-js/modules/` path is an **internal API**. It does not automatically inject all required dependencies, and it can change in any minor or patch release. Only use it for a custom build or if you know exactly what you are doing. Prefer the stable namespace paths above.
+</Warning>
+
+[bind-op]: https://github.com/tc39/proposal-bind-operator

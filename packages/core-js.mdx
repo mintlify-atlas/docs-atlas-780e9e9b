@@ -1,0 +1,197 @@
+---
+title: 'core-js'
+description: 'The global polyfill package. Extends native JavaScript globals to support modern ECMAScript features in older environments.'
+---
+
+`core-js` is the global polyfill package. It patches native globals (`Array`, `Promise`, `Set`, etc.) directly so that all downstream code works without any changes. This is the right choice for application code.
+
+<Warning>
+  Because `core-js` mutates native globals, it must **not** be used in published libraries. Library authors should use [`core-js-pure`](/packages/core-js-pure) instead.
+</Warning>
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js@3.49.0
+```
+
+```bash yarn
+yarn add core-js@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js@3.49.0
+```
+
+</CodeGroup>
+
+<Note>
+  Make sure `core-js` is listed under `dependencies`, not `devDependencies`, since it is required at runtime.
+</Note>
+
+## Entry namespaces
+
+`core-js` ships several pre-composed entry points that let you control which features are polyfilled.
+
+| Namespace | Path | What it includes |
+|-----------|------|------------------|
+| `full` | `core-js` / `core-js/full` | Everything: stable ES, web standards, and all stage proposals including early-stage experiments |
+| `actual` | `core-js/actual` | Stable ES, web standards, and stage 3+ proposals — **recommended** |
+| `stable` | `core-js/stable` | Stable ES and web standards only (no proposals) |
+| `es` | `core-js/es` | Stable ECMAScript features only |
+
+<Tip>
+  Use `core-js/actual` for most projects. It covers all actively-progressing ECMAScript proposals without pulling in early-stage experiments that may still change.
+</Tip>
+
+## Usage
+
+### Import a full namespace
+
+<CodeGroup>
+
+```js actual (recommended)
+import 'core-js/actual';
+```
+
+```js stable only
+import 'core-js/stable';
+```
+
+```js es only
+import 'core-js/es';
+```
+
+```js everything (including proposals)
+import 'core-js/full';
+```
+
+</CodeGroup>
+
+### Feature-specific imports
+
+```js
+// Polyfill all Set-related features (actual namespace)
+import 'core-js/actual/set';
+
+// Polyfill only specific methods
+import 'core-js/actual/array/find-last';
+import 'core-js/stable/queue-microtask';
+import 'core-js/es/array/from';
+import 'core-js/full/set/intersection';
+```
+
+### Import a proposal by stage
+
+```js
+// Polyfill the iterator-helpers proposal
+import 'core-js/proposals/iterator-helpers';
+
+// Polyfill all stage 2+ proposals
+import 'core-js/stage/2';
+```
+
+### Configurable polyfill aggressiveness
+
+By default, `core-js` applies polyfills only when a feature is missing or broken. You can override this per-feature using the configurator:
+
+```js
+const configurator = require('core-js/configurator');
+
+configurator({
+  useNative: ['Promise'],                                  // use polyfill only if native is absent
+  usePolyfill: ['Array.from', 'String.prototype.padEnd'], // always use polyfill
+  useFeatureDetection: ['Map', 'Set'],                    // default: auto-detect
+});
+
+require('core-js/actual');
+```
+
+<Warning>
+  Changing the default behaviour can break `core-js` internals. Only override specific features if you have a confirmed bug or environment quirk that requires it.
+</Warning>
+
+## Bundler configuration
+
+<Warning>
+  Load `core-js` at the **very top** of your application entry point, before any other imports. Polyfills applied after other code runs can produce subtle conflicts.
+
+  For example, Google Maps defines its own `Symbol.iterator`, which conflicts with `Array.from`, `URLSearchParams`, and other `core-js` features when polyfills are loaded too late.
+</Warning>
+
+Set `sideEffects: true` in your `package.json` (or the equivalent bundler flag) to prevent tree-shaking from removing polyfill imports:
+
+```json
+{
+  "sideEffects": true
+}
+```
+
+Or target only the `core-js` package:
+
+```json
+{
+  "sideEffects": ["./node_modules/core-js/**"]
+}
+```
+
+## Babel integration
+
+### @babel/preset-env
+
+`@babel/preset-env` can automatically inject only the polyfills needed for your target environments.
+
+```json
+{
+  "presets": [
+    ["@babel/preset-env", {
+      "useBuiltIns": "usage",
+      "corejs": "3.49"
+    }]
+  ]
+}
+```
+
+<Note>
+  Specify the full minor version (`"3.49"` not `"3"`) so that modules added in minor releases are included.
+</Note>
+
+| `useBuiltIns` value | Behaviour |
+|---------------------|-----------|
+| `"entry"` | Replaces a single `core-js` import with only the modules needed for your targets |
+| `"usage"` | Adds per-file imports for features actually used in that file |
+
+### swc
+
+```json
+{
+  "env": {
+    "targets": "> 0.25%, not dead",
+    "mode": "entry",
+    "coreJs": "3.49"
+  }
+}
+```
+
+## When to use `core-js`
+
+<CardGroup cols={2}>
+  <Card title="Use core-js when..." icon="check">
+    - Building an application (not a library)
+    - You control the full entry point
+    - You want native globals patched transparently
+    - You use Babel or swc with auto-injection
+  </Card>
+  <Card title="Use core-js-pure instead when..." icon="x">
+    - Authoring a reusable library or package
+    - You cannot afford to mutate globals
+    - You want explicit, named imports
+    - You need to avoid affecting other code on the page
+  </Card>
+</CardGroup>
+
+## Custom builds
+
+To generate a trimmed bundle for specific targets or exclude features you don't need, use [`core-js-builder`](/packages/core-js-builder).

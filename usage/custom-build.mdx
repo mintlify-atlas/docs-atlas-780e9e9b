@@ -1,0 +1,186 @@
+---
+title: "Custom build"
+description: "Generate a targeted core-js bundle with only the polyfills your environments need."
+---
+
+`core-js-builder` is the programmatic API for producing custom core-js bundles. Instead of shipping the full library, you can generate a single file that contains only the polyfills required by a specific set of target environments or a specific set of features — or both.
+
+## Installation
+
+```bash
+npm install --save-dev core-js-builder
+```
+
+`core-js-builder` depends on `core-js` and `core-js-compat`. Install core-js alongside it:
+
+```bash
+npm install --save core-js@3.49.0
+```
+
+## Basic usage
+
+```js build.mjs
+import builder from 'core-js-builder';
+
+const bundle = await builder({
+  // Which modules to include. Accepts an entry point path, a module name,
+  // a regular expression, or an array of any combination of these.
+  // Defaults to all core-js modules when omitted.
+  modules: ['core-js/actual', /^esnext\.reflect\./],
+
+  // Which modules to exclude. Same format as `modules`.
+  exclude: [/^es\.math\./, 'es.number.constructor'],
+
+  // Browserslist query string describing your target environments.
+  // When provided, only modules required by those environments are included.
+  targets: '> 0.5%, not dead, ie 9-11',
+
+  // Output format: 'bundle' (default), 'cjs', or 'esm'.
+  format: 'bundle',
+
+  // Optional path to write the bundle to disk.
+  // If omitted, the bundle is only returned as a string.
+  filename: './dist/polyfill.js',
+
+  // Summary output options.
+  summary: {
+    // Print size and module list to the console.
+    console: { size: true, modules: false },
+    // Embed size and module list as a comment in the output file.
+    comment: { size: false, modules: true },
+  },
+});
+
+console.log(`Bundle generated: ${bundle.length} bytes`);
+```
+
+The function returns a `Promise` that resolves to the bundle source as a string.
+
+## Options reference
+
+<AccordionGroup>
+  <Accordion title="modules">
+    Controls which parts of core-js are eligible for inclusion.
+
+    Accepted values:
+    - A string matching an **entry point name** — e.g. `'core-js/actual'`, `'core-js/es'`
+    - A string matching a **module name** — e.g. `'es.array.flat-map'`
+    - A **regular expression** matching one or more module names — e.g. `/^esnext\.reflect\./`
+    - An **array** of any combination of the above
+
+    When `modules` is omitted, all core-js modules are candidates for inclusion (still filtered by `targets` if provided).
+
+    ```js
+    // Only ES stable + esnext.reflect modules
+    modules: ['core-js/es', /^esnext\.reflect\./]
+    ```
+  </Accordion>
+
+  <Accordion title="exclude">
+    Removes specific modules from the set selected by `modules`. Same format as `modules`.
+
+    ```js
+    // Include everything in actual, but not Math extensions or Number constructor
+    modules: ['core-js/actual'],
+    exclude: [/^es\.math\./, 'es.number.constructor'],
+    ```
+  </Accordion>
+
+  <Accordion title="targets">
+    A [browserslist](https://github.com/browserslist/browserslist) query string. When set, the builder uses compatibility data from [`core-js-compat`](/packages/core-js-compat) to further reduce the module list to only those not natively supported by the specified environments.
+
+    ```js
+    targets: '> 0.5%, not dead, ie 9-11'
+    ```
+
+    Omit `targets` to build for all environments — the output will contain every module listed in `modules`.
+  </Accordion>
+
+  <Accordion title="format">
+    Controls the output format. Defaults to `'bundle'`.
+
+    | Value | Description |
+    |---|---|
+    | `'bundle'` | Single self-contained IIFE. Ready for a `<script>` tag or direct inclusion. |
+    | `'cjs'` | CommonJS: a file of `require('core-js/modules/...')` calls. Not bundled. |
+    | `'esm'` | ES modules: a file of `import 'core-js/modules/....js'` statements. Not bundled. |
+
+    ```js
+    format: 'esm'
+    ```
+
+    In `cjs` and `esm` modes the result is not bundled — it is a list of imports of the individual core-js module files.
+  </Accordion>
+
+  <Accordion title="filename">
+    Optional path where the bundle is written to disk. The directory is created automatically if it does not exist.
+
+    If `filename` is omitted, no file is written; the bundle is only returned as a string from the `Promise`.
+
+    ```js
+    filename: './dist/polyfill.js'
+    ```
+  </Accordion>
+
+  <Accordion title="summary">
+    Controls what summary information is produced. Each sub-key (`console` and `comment`) accepts `true` (enable both `size` and `modules`) or an object with `size` and `modules` booleans.
+
+    ```js
+    summary: {
+      console: { size: true, modules: false }, // print size to stdout
+      comment: { size: false, modules: true },  // embed module list in output file
+    }
+    ```
+
+    When `summary.console.size` is `true`, the builder prints a line like:
+
+    ```
+    bundling `./dist/polyfill.js`, size: 42.15KB
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The generated bundle is a self-contained script. When you provide `targets`, each module in the output is only present if at least one of your target environments does not natively support it. This means the same `modules` configuration produces a smaller file for modern target sets and a larger file for older ones.
+
+Use `summary.console.modules: true` to see exactly which modules were selected and which target environments each one covers:
+
+```js
+import builder from 'core-js-builder';
+
+await builder({
+  modules: ['core-js/actual'],
+  targets: 'last 2 Chrome versions',
+  summary: { console: { size: true, modules: true } },
+});
+```
+
+## TypeScript
+
+When importing `core-js-builder` from TypeScript, set `esModuleInterop: true` in your `tsconfig.json`:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "esModuleInterop": true
+  }
+}
+```
+
+Then import normally:
+
+```ts build.ts
+import builder from 'core-js-builder';
+
+const bundle = await builder({
+  modules: ['core-js/actual'],
+  targets: '> 0.5%, not dead',
+  filename: './dist/polyfill.js',
+});
+```
+
+## Related
+
+- [Entry points](/usage/entry-points) — the `modules` and `exclude` options accept the same entry point names used in direct imports.
+- [`core-js-compat`](/packages/core-js-compat) — the compatibility data package that `targets` queries are evaluated against.

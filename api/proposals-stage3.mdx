@@ -1,0 +1,65 @@
+---
+title: "Stage 3 Proposals"
+description: "Polyfills for TC39 proposals at Stage 3 — feature-complete and awaiting final review."
+---
+
+Stage 3 proposals are feature-complete and have received sign-off from the TC39 committee. They are available in the `core-js/actual` namespace (recommended) and via dedicated proposal entry points.
+
+```js
+// Load all Stage 3 proposals
+import 'core-js/stage/3';
+
+// Or load a specific proposal
+import 'core-js/proposals/joint-iteration';
+```
+
+<Warning>
+  Stage 3 proposals are stable but not yet finalized. Breaking changes are rare but possible. Track the proposal repos for updates before relying on them in production.
+</Warning>
+
+## Joint iteration
+
+**Proposal:** [tc39/proposal-joint-iteration](https://github.com/tc39/proposal-joint-iteration)
+
+Adds `Iterator.zip` and `Iterator.zipKeyed` for iterating multiple iterables in lockstep.
+
+```js
+import 'core-js/proposals/joint-iteration';
+
+const zipped = Iterator.zip([1, 2, 3], ['a', 'b', 'c']);
+zipped.toArray(); // => [[1, 'a'], [2, 'b'], [3, 'c']]
+
+const zippedKeyed = Iterator.zipKeyed({ x: [1, 2], y: ['a', 'b'] });
+zippedKeyed.toArray(); // => [{ x: 1, y: 'a' }, { x: 2, y: 'b' }]
+```
+
+**Entry points:**
+
+```
+core-js/proposals/joint-iteration
+core-js(-pure)/actual|full/iterator/zip
+core-js(-pure)/actual|full/iterator/zip-keyed
+```
+
+## Symbol.metadata for decorators
+
+**Proposal:** [tc39/proposal-decorator-metadata](https://github.com/tc39/proposal-decorator-metadata)
+
+Adds `Symbol.metadata`, a well-known symbol used by the decorators proposal to attach metadata to classes and class members.
+
+```js
+import 'core-js/proposals/decorator-metadata-v2';
+
+console.log(typeof Symbol.metadata); // => 'symbol'
+```
+
+**Entry points:**
+
+```
+core-js/proposals/decorator-metadata-v2
+core-js(-pure)/actual|full/symbol/metadata
+```
+
+<Tip>
+  The decorators proposal itself requires transpiler support (Babel or TypeScript). core-js only polyfills the `Symbol.metadata` symbol, not the decorator syntax.
+</Tip>

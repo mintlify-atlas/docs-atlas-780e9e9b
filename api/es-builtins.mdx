@@ -1,0 +1,593 @@
+---
+title: "ECMAScript Built-ins"
+description: "Polyfills for Object, Array, String, Number, Math, Date, Function, and Error."
+---
+
+core-js provides polyfills for the standard ECMAScript built-in objects and their methods, targeting environments from ES3 onward. Import the whole namespace or individual methods.
+
+## Object
+
+<Tabs>
+  <Tab title="Import all">
+    ```javascript
+    import 'core-js/actual/object';
+    ```
+  </Tab>
+  <Tab title="Import individual">
+    ```javascript
+    import 'core-js/actual/object/assign';
+    import 'core-js/actual/object/keys';
+    import 'core-js/actual/object/values';
+    import 'core-js/actual/object/entries';
+    import 'core-js/actual/object/from-entries';
+    import 'core-js/actual/object/get-own-property-descriptors';
+    import 'core-js/actual/object/has-own';
+    import 'core-js/actual/object/is';
+    ```
+  </Tab>
+</Tabs>
+
+### Object.assign
+
+Copies enumerable own properties from one or more source objects to a target object.
+
+```javascript
+import 'core-js/actual/object/assign';
+
+let foo = { q: 1, w: 2 };
+let bar = { e: 3, r: 4 };
+let baz = { t: 5, y: 6 };
+Object.assign(foo, bar, baz);
+// => foo = { q: 1, w: 2, e: 3, r: 4, t: 5, y: 6 }
+```
+
+### Object.keys / Object.values / Object.entries
+
+Returns arrays of own enumerable property keys, values, or `[key, value]` pairs.
+
+```javascript
+import 'core-js/actual/object/keys';
+import 'core-js/actual/object/values';
+import 'core-js/actual/object/entries';
+
+Object.keys({ a: 1, b: 2, c: 3 });    // => ['a', 'b', 'c']
+Object.values({ a: 1, b: 2, c: 3 });  // => [1, 2, 3]
+Object.entries({ a: 1, b: 2, c: 3 }); // => [['a', 1], ['b', 2], ['c', 3]]
+
+for (let [key, value] of Object.entries({ a: 1, b: 2, c: 3 })) {
+  console.log(key);   // => 'a', 'b', 'c'
+  console.log(value); // => 1, 2, 3
+}
+```
+
+### Object.fromEntries
+
+Creates an object from an iterable of `[key, value]` pairs (inverse of `Object.entries`).
+
+```javascript
+import 'core-js/actual/object/from-entries';
+
+const map = new Map([['a', 1], ['b', 2]]);
+Object.fromEntries(map); // => { a: 1, b: 2 }
+
+Object.fromEntries([['x', 10], ['y', 20]]); // => { x: 10, y: 20 }
+
+// Convert entries back to an object with transformed values:
+const doubled = Object.fromEntries(
+  Object.entries({ a: 1, b: 2 }).map(([k, v]) => [k, v * 2])
+);
+// => { a: 2, b: 4 }
+```
+
+### Object.getOwnPropertyDescriptors
+
+Returns a map of all own property descriptors, useful for shallow cloning with prototype and descriptors preserved.
+
+```javascript
+import 'core-js/actual/object/get-own-property-descriptors';
+
+// Shallow clone with prototype and descriptors:
+const copy = Object.create(
+  Object.getPrototypeOf(source),
+  Object.getOwnPropertyDescriptors(source)
+);
+
+// Mixin:
+Object.defineProperties(target, Object.getOwnPropertyDescriptors(mixin));
+```
+
+### Object.hasOwn
+
+A safe alternative to `Object.prototype.hasOwnProperty.call(obj, key)`.
+
+```javascript
+import 'core-js/actual/object/has-own';
+
+Object.hasOwn({ foo: 42 }, 'foo'); // => true
+Object.hasOwn({ foo: 42 }, 'bar'); // => false
+Object.hasOwn({}, 'toString');     // => false
+```
+
+### Object.is
+
+Strict value comparison that handles `NaN` and `-0` correctly.
+
+```javascript
+import 'core-js/actual/object/is';
+
+Object.is(NaN, NaN); // => true
+Object.is(0, -0);    // => false
+Object.is(42, 42);   // => true
+Object.is(42, '42'); // => false
+```
+
+### structuredClone
+
+Deep-clones a value using the structured clone algorithm. Available as a global function polyfill via the web namespace.
+
+```javascript
+import 'core-js/actual/structured-clone';
+
+structuredClone({ x: 42 });              // => { x: 42 }
+structuredClone([1, 2, 3]);              // => [1, 2, 3]
+structuredClone(new Set([1, 2, 3]));     // => Set{ 1, 2, 3 }
+structuredClone(new Map([['a', 1]]));    // => Map{ a: 1 }
+
+// Circular references are handled:
+const obj = {};
+obj.self = obj;
+const clone = structuredClone(obj);
+clone.self === clone; // => true
+```
+
+<Note>
+  `structuredClone` is part of the web platform polyfills in core-js, not the ES namespace. Use `import 'core-js/actual/structured-clone'` or `import 'core-js/stable/structured-clone'`.
+</Note>
+
+---
+
+## Array
+
+<Tabs>
+  <Tab title="Import all">
+    ```javascript
+    import 'core-js/actual/array';
+    ```
+  </Tab>
+  <Tab title="Import individual">
+    ```javascript
+    import 'core-js/actual/array/from';
+    import 'core-js/actual/array/from-async';
+    import 'core-js/actual/array/of';
+    import 'core-js/actual/array/is-array';
+    import 'core-js/actual/array/virtual/flat';
+    import 'core-js/actual/array/virtual/flat-map';
+    import 'core-js/actual/array/virtual/find-last';
+    import 'core-js/actual/array/virtual/find-last-index';
+    import 'core-js/actual/array/virtual/at';
+    import 'core-js/actual/array/virtual/to-reversed';
+    import 'core-js/actual/array/virtual/to-sorted';
+    import 'core-js/actual/array/virtual/to-spliced';
+    import 'core-js/actual/array/virtual/with';
+    ```
+  </Tab>
+</Tabs>
+
+### Static methods
+
+**`Array.from`** — creates an array from an iterable or array-like object with an optional map function.
+
+```javascript
+import 'core-js/actual/array/from';
+
+Array.from(new Set([1, 2, 3, 2, 1]));        // => [1, 2, 3]
+Array.from({ 0: 1, 1: 2, 2: 3, length: 3 }); // => [1, 2, 3]
+Array.from('123', Number);                    // => [1, 2, 3]
+Array.from('123', it => it ** 2);             // => [1, 4, 9]
+```
+
+**`Array.of`** — creates an array from its arguments, regardless of number or type.
+
+```javascript
+import 'core-js/actual/array/of';
+
+Array.of(1);       // => [1]
+Array.of(1, 2, 3); // => [1, 2, 3]
+```
+
+**`Array.isArray`** — returns `true` if the value is an array.
+
+```javascript
+import 'core-js/actual/array/is-array';
+
+Array.isArray([1, 2, 3]); // => true
+Array.isArray('string');  // => false
+```
+
+**`Array.fromAsync`** — creates an array from an async iterable, iterable, or array-like object.
+
+```javascript
+import 'core-js/actual/array/from-async';
+
+await Array.fromAsync(
+  (async function* () { yield* [1, 2, 3]; })(),
+  i => i ** 2
+); // => [1, 4, 9]
+```
+
+### Prototype methods
+
+**`flat` / `flatMap`** — flatten nested arrays, optionally mapping first.
+
+```javascript
+import 'core-js/actual/array/virtual/flat';
+import 'core-js/actual/array/virtual/flat-map';
+
+[1, [2, 3], [4, 5]].flat();    // => [1, 2, 3, 4, 5]
+[1, [2, [3, [4]]], 5].flat(3); // => [1, 2, 3, 4, 5]
+
+[{ a: 1, b: 2 }, { a: 3, b: 4 }].flatMap(it => [it.a, it.b]);
+// => [1, 2, 3, 4]
+```
+
+**`findLast` / `findLastIndex`** — search from the end of the array.
+
+```javascript
+import 'core-js/actual/array/virtual/find-last';
+import 'core-js/actual/array/virtual/find-last-index';
+
+[1, 2, 3, 4].findLast(x => x % 2);      // => 3
+[1, 2, 3, 4].findLastIndex(x => x % 2); // => 2
+```
+
+**`at`** — access elements by relative index (negative indices count from the end).
+
+```javascript
+import 'core-js/actual/array/virtual/at';
+
+[1, 2, 3].at(1);  // => 2
+[1, 2, 3].at(-1); // => 3
+```
+
+**`toReversed` / `toSorted` / `toSpliced` / `with`** — non-mutating change-by-copy methods (ES2023).
+
+```javascript
+import 'core-js/actual/array/virtual/to-reversed';
+import 'core-js/actual/array/virtual/to-sorted';
+import 'core-js/actual/array/virtual/to-spliced';
+import 'core-js/actual/array/virtual/with';
+
+const seq = [1, 2, 3];
+seq.toReversed(); // => [3, 2, 1]
+seq;              // => [1, 2, 3]  (original unchanged)
+
+const arr = [1, 2, 3, 4];
+arr.toSpliced(1, 2, 5, 6, 7); // => [1, 5, 6, 7, 4]
+arr;                           // => [1, 2, 3, 4]
+
+[3, 1, 2].toSorted();          // => [1, 2, 3]
+
+[1, 1, 3].with(1, 2);          // => [1, 2, 3]
+```
+
+**`includes`** — like `indexOf` but handles `NaN` correctly.
+
+```javascript
+import 'core-js/actual/array/virtual/includes';
+
+[1, 2, 3].includes(2);     // => true
+[NaN].includes(NaN);       // => true
+[NaN].indexOf(NaN);        // => -1
+```
+
+**`fill`** — fills all or part of an array with a static value.
+
+```javascript
+import 'core-js/actual/array/virtual/fill';
+
+Array(5).fill(42);          // => [42, 42, 42, 42, 42]
+[1, 2, 3, 4].fill(0, 1, 3); // => [1, 0, 0, 4]
+```
+
+**`copyWithin`** — shallow-copies part of an array to another position within it.
+
+```javascript
+import 'core-js/actual/array/virtual/copy-within';
+
+[1, 2, 3, 4, 5].copyWithin(0, 3); // => [4, 5, 3, 4, 5]
+```
+
+---
+
+## String
+
+<Tabs>
+  <Tab title="Import all">
+    ```javascript
+    import 'core-js/actual/string';
+    ```
+  </Tab>
+  <Tab title="Import individual">
+    ```javascript
+    import 'core-js/actual/string/virtual/pad-start';
+    import 'core-js/actual/string/virtual/pad-end';
+    import 'core-js/actual/string/virtual/trim-start';
+    import 'core-js/actual/string/virtual/trim-end';
+    import 'core-js/actual/string/virtual/match-all';
+    import 'core-js/actual/string/virtual/replace-all';
+    import 'core-js/actual/string/virtual/at';
+    ```
+  </Tab>
+</Tabs>
+
+### padStart / padEnd
+
+Pad the current string with another string until it reaches a given length.
+
+```javascript
+import 'core-js/actual/string/virtual/pad-start';
+import 'core-js/actual/string/virtual/pad-end';
+
+'hello'.padStart(10);         // => '     hello'
+'hello'.padStart(10, '1234'); // => '12341hello'
+'hello'.padEnd(10);           // => 'hello     '
+'hello'.padEnd(10, '1234');   // => 'hello12341'
+```
+
+### trimStart / trimEnd
+
+Remove leading or trailing whitespace without affecting the other side.
+
+```javascript
+import 'core-js/actual/string/virtual/trim-start';
+import 'core-js/actual/string/virtual/trim-end';
+
+'   hello   '.trimStart(); // => 'hello   '
+'   hello   '.trimEnd();   // => '   hello'
+```
+
+### matchAll
+
+Returns an iterator of all matches against a global regular expression, including capture groups.
+
+```javascript
+import 'core-js/actual/string/virtual/match-all';
+
+const regex = RegExp('(?<number>\\d)(?<letter>\\D)', 'g');
+for (let { groups: { number, letter } } of '1a2b3c'.matchAll(regex)) {
+  console.log(number, letter); // => '1' 'a', '2' 'b', '3' 'c'
+}
+```
+
+### replaceAll
+
+Replaces all occurrences of a substring or pattern.
+
+```javascript
+import 'core-js/actual/string/virtual/replace-all';
+
+'Test abc test test abc test.'.replaceAll('abc', 'foo');
+// => 'Test foo test test foo test.'
+```
+
+### at
+
+Access characters by relative index (negative counts from the end).
+
+```javascript
+import 'core-js/actual/string/virtual/at';
+
+'abc'.at(1);  // => 'b'
+'abc'.at(-1); // => 'c'
+```
+
+### Template literal revision
+
+core-js fixes `String.raw` and tagged template literal handling so that invalid escape sequences do not throw in ES2018+ tagged templates.
+
+```javascript
+import 'core-js/actual/string/raw';
+
+let name = 'Bob';
+String.raw`Hi\n${ name }!`; // => 'Hi\\nBob!'
+```
+
+---
+
+## Number
+
+<Tabs>
+  <Tab title="Import all">
+    ```javascript
+    import 'core-js/actual/number';
+    ```
+  </Tab>
+  <Tab title="Import individual">
+    ```javascript
+    import 'core-js/actual/number/is-finite';
+    import 'core-js/actual/number/is-integer';
+    import 'core-js/actual/number/is-nan';
+    import 'core-js/actual/number/is-safe-integer';
+    import 'core-js/actual/number/parse-float';
+    import 'core-js/actual/number/parse-int';
+    import 'core-js/actual/number/epsilon';
+    ```
+  </Tab>
+</Tabs>
+
+```javascript
+import 'core-js/actual/number';
+
+Number.isFinite(Infinity);  // => false
+Number.isFinite(42);        // => true
+
+Number.isInteger(42);       // => true
+Number.isInteger(42.5);     // => false
+
+Number.isNaN(NaN);          // => true
+Number.isNaN(42);           // => false
+
+Number.isSafeInteger(Number.MAX_SAFE_INTEGER);     // => true
+Number.isSafeInteger(Number.MAX_SAFE_INTEGER + 1); // => false
+
+Number.parseFloat('3.14'); // => 3.14
+Number.parseInt('42px');   // => 42
+
+Number.EPSILON;            // => 2.220446049250313e-16
+Number.MAX_SAFE_INTEGER;   // => 9007199254740991
+Number.MIN_SAFE_INTEGER;   // => -9007199254740991
+```
+
+<Note>
+  `Number.isFinite`, `Number.isNaN`, etc. differ from their global counterparts in that they do not coerce the argument to a number before testing.
+</Note>
+
+---
+
+## Math
+
+```javascript
+import 'core-js/actual/math';
+```
+
+Or import individual methods:
+
+```javascript
+import 'core-js/actual/math/sign';
+import 'core-js/actual/math/trunc';
+import 'core-js/actual/math/cbrt';
+import 'core-js/actual/math/log2';
+import 'core-js/actual/math/log10';
+import 'core-js/actual/math/hypot';
+import 'core-js/actual/math/fround';
+import 'core-js/actual/math/clz32';
+import 'core-js/actual/math/imul';
+import 'core-js/actual/math/expm1';
+import 'core-js/actual/math/log1p';
+import 'core-js/actual/math/sinh';
+import 'core-js/actual/math/cosh';
+import 'core-js/actual/math/tanh';
+import 'core-js/actual/math/acosh';
+import 'core-js/actual/math/asinh';
+import 'core-js/actual/math/atanh';
+import 'core-js/actual/math/sum-precise';
+```
+
+<AccordionGroup>
+  <Accordion title="Rounding and sign">
+    ```javascript
+    Math.sign(-5);  // => -1
+    Math.sign(0);   // => 0
+    Math.sign(5);   // => 1
+
+    Math.trunc(3.7);  // => 3
+    Math.trunc(-3.7); // => -3
+
+    Math.cbrt(27); // => 3
+    ```
+  </Accordion>
+  <Accordion title="Logarithms">
+    ```javascript
+    Math.log2(8);     // => 3
+    Math.log10(1000); // => 3
+    Math.log1p(0);    // => 0  (more precise than Math.log(1 + x) for small x)
+    Math.expm1(0);    // => 0  (more precise than Math.exp(x) - 1 for small x)
+    ```
+  </Accordion>
+  <Accordion title="Geometry and bit operations">
+    ```javascript
+    Math.hypot(3, 4);     // => 5
+    Math.clz32(1);        // => 31 (count leading zeros in 32-bit int)
+    Math.imul(3, 4);      // => 12 (C-like 32-bit integer multiplication)
+    Math.fround(1.337);   // => 1.3370000123977661 (nearest float32)
+    ```
+  </Accordion>
+  <Accordion title="Hyperbolic functions">
+    ```javascript
+    Math.sinh(1);  // => 1.1752011936438014
+    Math.cosh(1);  // => 1.5430806348152437
+    Math.tanh(1);  // => 0.7615941559557649
+    Math.acosh(2); // => 1.3169578969248166
+    Math.asinh(1); // => 0.881373587019543
+    Math.atanh(0.5); // => 0.5493061443340548
+    ```
+  </Accordion>
+  <Accordion title="Math.sumPrecise (ES2026)">
+    Computes an exact sum of an iterable of numbers without floating-point accumulation error.
+
+    ```javascript
+    import 'core-js/actual/math/sum-precise';
+
+    1e20 + 0.1 + -1e20;              // => 0  (floating-point error)
+    Math.sumPrecise([1e20, 0.1, -1e20]); // => 0.1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Function
+
+core-js polyfills `Function.prototype.name` for function expressions and class methods in older engines.
+
+```javascript
+import 'core-js/actual/function/name';
+
+(function foo() {}).name; // => 'foo'
+(class Bar {}).name;       // => 'Bar'
+```
+
+---
+
+## Error
+
+```javascript
+import 'core-js/actual/aggregate-error';
+import 'core-js/actual/error/constructor';
+```
+
+### AggregateError
+
+Wraps multiple errors into a single error, used by `Promise.any` when all promises reject.
+
+```javascript
+import 'core-js/actual/aggregate-error';
+
+const error1 = new TypeError('Error 1');
+const error2 = new TypeError('Error 2');
+const aggregate = new AggregateError([error1, error2], 'Collected errors');
+
+aggregate.message;    // => 'Collected errors'
+aggregate.errors[0];  // => error1
+aggregate.errors[1];  // => error2
+```
+
+### Error cause
+
+All standard error constructors accept a second options argument with a `cause` property (ES2022).
+
+```javascript
+import 'core-js/actual/error/constructor';
+
+const cause = new TypeError('Something went wrong');
+const error = new TypeError('Explained error', { cause });
+error.cause === cause; // => true
+```
+
+### Error.isError
+
+Checks whether a value is a native error object (ES2026 proposal, finished).
+
+```javascript
+import 'core-js/actual/error/is-error';
+
+Error.isError(new Error('oops'));         // => true
+Error.isError(new TypeError('oops'));     // => true
+Error.isError(null);                      // => false
+Error.isError({});                        // => false
+Error.isError(Object.create(Error.prototype)); // => false
+```
+
+<Warning>
+  `Error.isError` cannot be polyfilled with complete accuracy. The implementation is intentionally naive — objects manually created with `Object.create(Error.prototype)` return `false`.
+</Warning>

@@ -1,0 +1,218 @@
+---
+title: "Web Standards"
+description: "Polyfills for WHATWG and W3C web platform APIs including URL, structuredClone, queueMicrotask, and more."
+---
+
+core-js includes polyfills for select Web/WHATWG platform APIs that are widely used but not always available in all environments. These are available under the `stable`, `actual`, and `full` namespaces.
+
+```js
+// Load all web standard polyfills
+import 'core-js/actual';
+
+// Or load specific ones
+import 'core-js/stable/url';
+import 'core-js/stable/structured-clone';
+import 'core-js/stable/queue-microtask';
+```
+
+## URL and URLSearchParams
+
+Full implementation of the [WHATWG URL standard](https://url.spec.whatwg.org/).
+
+```js
+import 'core-js/stable/url';
+import 'core-js/stable/url-search-params';
+
+URL.canParse('https://example.com'); // => true
+URL.canParse('not-a-url');           // => false
+
+URL.parse('https://example.com');    // => URL object
+URL.parse('not-a-url');              // => null
+
+const url = new URL('https://login:password@example.com:8080/foo/bar?a=1&b=2#frag');
+url.href;       // => 'https://login:password@example.com:8080/foo/bar?a=1&b=2#frag'
+url.origin;     // => 'https://example.com:8080'
+url.protocol;   // => 'https:'
+url.username;   // => 'login'
+url.password;   // => 'password'
+url.host;       // => 'example.com:8080'
+url.hostname;   // => 'example.com'
+url.port;       // => '8080'
+url.pathname;   // => '/foo/bar'
+url.search;     // => '?a=1&b=2'
+url.hash;       // => '#frag'
+
+const params = new URLSearchParams('a=1&b=2&a=3');
+params.getAll('a'); // => ['1', '3']
+params.has('b');    // => true
+params.get('b');    // => '2'
+params.size;        // => 3
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/url
+core-js(-pure)/stable|actual|full/url/can-parse
+core-js/stable|actual|full/url/to-json
+core-js(-pure)/stable|actual|full/url-search-params
+```
+
+## structuredClone
+
+Deep clones a value using the [structured clone algorithm](https://html.spec.whatwg.org/multipage/structured-data.html#dom-structuredclone).
+
+```js
+import 'core-js/stable/structured-clone';
+
+const obj = { a: [1, 2, 3] };
+const clone = structuredClone(obj);
+clone !== obj;       // => true
+clone.a !== obj.a;  // => true
+
+// Supports complex types
+structuredClone(new Set([1, 2, 3]));                      // => Set {1, 2, 3}
+structuredClone(new Map([['a', 1]]));                      // => Map { 'a' => 1 }
+structuredClone(new Int8Array([1, 2, 3]));                 // => Int8Array [1, 2, 3]
+structuredClone(new TypeError('msg', { cause: 42 }));     // => TypeError
+
+// Circular references
+const circular = {};
+circular.self = circular;
+const c = structuredClone(circular);
+c.self === c; // => true
+```
+
+<Warning>
+  The `.transfer` option for transferring `ArrayBuffer` is only polyfilled in environments with native `structuredClone` or `MessageChannel` support. Avoid relying on it in older environments.
+</Warning>
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/structured-clone
+```
+
+## queueMicrotask
+
+Schedules a microtask — runs after the current task but before any macrotasks.
+
+```js
+import 'core-js/stable/queue-microtask';
+
+queueMicrotask(() => console.log('microtask'));
+console.log('sync');
+// Output: 'sync', then 'microtask'
+```
+
+**Entry point:**
+```
+core-js(-pure)/stable|actual|full/queue-microtask
+```
+
+## setImmediate / clearImmediate
+
+Schedules a callback to run after I/O events but before `setTimeout`.
+
+```js
+import 'core-js/stable/set-immediate';
+
+const id = setImmediate((a, b) => {
+  console.log(a, b); // => 'hello' 'world'
+}, 'hello', 'world');
+
+clearImmediate(id); // cancels it
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/set-immediate
+core-js(-pure)/stable|actual|full/clear-immediate
+```
+
+## setTimeout / setInterval
+
+Fixes additional-arguments support in IE9 and below.
+
+```js
+import 'core-js/stable/set-timeout';
+
+// Before (IE9 workaround):
+setTimeout(log.bind(null, 42), 1000);
+
+// After (cross-platform):
+setTimeout(log, 1000, 42);
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/set-timeout
+core-js(-pure)/stable|actual|full/set-interval
+```
+
+## Base64 — atob / btoa
+
+```js
+import 'core-js/stable/atob';
+import 'core-js/stable/btoa';
+
+btoa('hi, core-js');      // => 'aGksIGNvcmUtanM='
+atob('aGksIGNvcmUtanM='); // => 'hi, core-js'
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/atob
+core-js(-pure)/stable|actual|full/btoa
+```
+
+## DOMException
+
+Standard `DOMException` constructor for environments that don't have it.
+
+```js
+import 'core-js/stable/dom-exception';
+
+const err = new DOMException('message', 'DataCloneError');
+err instanceof DOMException; // => true
+err.name;    // => 'DataCloneError'
+err.message; // => 'message'
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/dom-exception
+```
+
+## self
+
+Global `self` reference for environments that don't expose it.
+
+```js
+import 'core-js/stable/self';
+
+self.Array === Array; // => true
+```
+
+**Entry point:**
+```
+core-js(-pure)/stable|actual|full/self
+```
+
+## Iterable DOM collections
+
+Makes `NodeList`, `DOMTokenList`, `MediaList`, `StyleSheetList`, and `CSSRuleList` iterable with `for...of`, spread, and destructuring.
+
+```js
+import 'core-js/stable/dom-collections';
+
+for (const element of document.querySelectorAll('div')) {
+  // works without Array.from()
+}
+
+const [first, ...rest] = document.querySelectorAll('a');
+```
+
+**Entry points:**
+```
+core-js(-pure)/stable|actual|full/dom-collections
+core-js(-pure)/stable|actual|full/dom-collections/iterator
+```

@@ -1,0 +1,79 @@
+---
+title: "Introduction"
+description: "What core-js is, why it exists, and how it fits into the modern JavaScript ecosystem."
+---
+
+core-js is the most comprehensive and widely used JavaScript polyfill library. It provides a modular standard library for JavaScript, covering ECMAScript up to ES2025, ECMAScript proposals at various stages, and a selection of cross-platform Web APIs — all in a single, tree-shakeable package.
+
+## Why core-js exists
+
+The ECMAScript specification evolves faster than browser and runtime vendors can ship implementations. Features ratified in one year may not reach full cross-browser support for years afterward. Older environments in enterprise and consumer contexts trail even further behind.
+
+core-js bridges this gap. It detects whether a native implementation is present and correct, and only installs a polyfill when needed. This means you can write modern JavaScript targeting any environment — from a current Chrome build to a decade-old Android WebView — without managing a hand-rolled collection of compatibility shims.
+
+## Three ways to use core-js
+
+core-js ships in three forms to suit different deployment requirements:
+
+| Package | Global namespace | Best for |
+|---|---|---|
+| `core-js` | Pollutes globals | Applications, most common use case |
+| `core-js-pure` | No global pollution | Libraries, embedded components |
+| `core-js-bundle` | Pollutes globals | Direct `<script>` tag / CDN usage |
+
+**`core-js` (global version)** installs polyfills directly onto built-in prototypes and constructors (`Array.prototype`, `Promise`, `Set`, etc.), matching the shape of the native standard library. This is the right choice for applications where you control the full environment.
+
+**`core-js-pure` (ponyfill version)** exports the same implementations as named ES module / CommonJS exports without touching the global scope. Prototype methods become standalone functions. This is the right choice for libraries that must not alter the environment for their consumers.
+
+**`core-js-bundle`** is a pre-built, minified version of the global polyfill ready for delivery via a CDN or a `<script>` tag, with no build step required.
+
+## The package ecosystem
+
+<CardGroup cols={2}>
+  <Card title="core-js" icon="box" href="/packages/core-js">
+    The global polyfill. Installs missing features onto built-in globals. Use this in applications.
+  </Card>
+  <Card title="core-js-pure" icon="shield" href="/packages/core-js-pure">
+    Pollution-free ponyfill. Exports implementations as modules without modifying globals. Use this in libraries.
+  </Card>
+  <Card title="core-js-compat" icon="table" href="/packages/core-js-compat">
+    Compatibility data tables mapping features to the minimum engine version that supports them. Consumed by Babel and swc integrations.
+  </Card>
+  <Card title="core-js-builder" icon="wrench" href="/packages/core-js-builder">
+    Programmatic API for producing custom polyfill bundles targeting specific engine sets or feature subsets.
+  </Card>
+  <Card title="core-js-bundle" icon="layers" href="/packages/core-js-bundle">
+    Pre-built global bundle ready for CDN delivery or direct `<script>` inclusion.
+  </Card>
+</CardGroup>
+
+## Integration with build toolchains
+
+core-js is the polyfill backend for two mainstream JavaScript transpiler ecosystems:
+
+**Babel** — `@babel/preset-env` accepts a `corejs: '3.49'` option and automatically injects only the polyfill imports your target environments actually need, based on `core-js-compat` data. `@babel/runtime` with `corejs: 3` transforms usage of modern built-ins to pollution-free `core-js-pure` imports without any manual import statements.
+
+**swc** — The Rust-based transpiler supports the same `entry` and `usage` modes as `@babel/preset-env`, driven by the same `core-js-compat` data. Configure via the `env.coreJs` field in `.swcrc`.
+
+Both integrations require specifying a minor version (e.g., `'3.49'` rather than `3`) so that polyfills introduced in minor releases are included correctly.
+
+## Current version and license
+
+core-js is currently at **version 3.49.0** and is distributed under the **MIT license**. It is maintained by [Denis Pushkarev](https://github.com/zloirock) and supported entirely through community funding.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install core-js, core-js-pure, or core-js-bundle into your project.
+  </Card>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Get polyfills running in your application in minutes.
+  </Card>
+  <Card title="core-js package" icon="box" href="/packages/core-js">
+    Entry points, namespaces, and CommonJS API reference.
+  </Card>
+  <Card title="core-js-pure package" icon="shield" href="/packages/core-js-pure">
+    Using core-js without global namespace pollution.
+  </Card>
+</CardGroup>

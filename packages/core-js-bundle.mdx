@@ -1,0 +1,121 @@
+---
+title: 'core-js-bundle'
+description: 'A pre-built, ready-to-use bundle of core-js/actual. No build step required — drop it in via a script tag or require it directly.'
+---
+
+`core-js-bundle` is a pre-built distribution of [`core-js/actual`](/packages/core-js). It is a single file you can load directly in a browser or Node.js environment without any build tooling.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install --save core-js-bundle@3.49.0
+```
+
+```bash yarn
+yarn add core-js-bundle@3.49.0
+```
+
+```bash pnpm
+pnpm add core-js-bundle@3.49.0
+```
+
+</CodeGroup>
+
+## Usage
+
+### Script tag (browser)
+
+```html
+<script src="node_modules/core-js-bundle/minified.js"></script>
+```
+
+Or load it from a CDN:
+
+```html
+<script src="https://unpkg.com/core-js-bundle@3.49.0/minified.js"></script>
+```
+
+### CommonJS (Node.js / legacy bundlers)
+
+```js
+require('core-js-bundle');
+```
+
+### Verify what's included
+
+`core-js-bundle` is equivalent to importing `core-js/actual`:
+
+```js
+// These two are equivalent in terms of what gets polyfilled:
+import 'core-js/actual';     // if you're using core-js directly with a bundler
+require('core-js-bundle');   // pre-built, no bundler needed
+```
+
+## What it includes
+
+`core-js-bundle` ships the `core-js/actual` namespace, which covers:
+
+- All stable ECMAScript features (ES5 through the latest ratified spec)
+- Web platform standards polyfilled by `core-js` (e.g., `structuredClone`, `queueMicrotask`, `URL`)
+- Stage 3+ ECMAScript proposals that are actively progressing toward standardisation
+
+It does **not** include early-stage proposals (stage 0–2). For those, you would need to build a custom bundle using [`core-js-builder`](/packages/core-js-builder).
+
+## Files in the package
+
+| File | Description |
+|------|-------------|
+| `index.js` | Unminified bundle with source comments |
+| `minified.js` | Minified bundle for production use |
+| `minified.js.map` | Source map for the minified bundle |
+
+## `core-js-bundle` vs `core-js`
+
+| | `core-js` | `core-js-bundle` |
+|--|-----------|-----------------|
+| **Requires a bundler** | Yes (Webpack, Rollup, etc.) | No |
+| **Tree-shakeable** | Yes (import specific modules) | No (entire `actual` namespace) |
+| **Use with `<script>` tag** | No | Yes |
+| **Custom feature selection** | Yes | No — use `core-js-builder` |
+| **Recommended for** | Modern build pipelines | CDN, legacy projects, quick prototyping |
+
+<Note>
+  If you have a build pipeline (Webpack, Vite, Rollup, etc.), use [`core-js`](/packages/core-js) directly. It enables tree-shaking, auto-injection with Babel/swc, and lets you import only what you need. `core-js-bundle` is aimed at environments where a build step is not practical.
+</Note>
+
+## When to use `core-js-bundle`
+
+<CardGroup cols={2}>
+  <Card title="CDN delivery" icon="cloud">
+    Serve a polyfill file from a CDN without needing to run a build. Works with unpkg, jsDelivr, or a self-hosted CDN.
+  </Card>
+  <Card title="Legacy projects without bundlers" icon="browser">
+    Projects using plain `<script>` tags or older tooling that cannot process `node_modules` directly.
+  </Card>
+  <Card title="Quick prototyping" icon="bolt">
+    Spin up a prototype or demo page that needs modern JS features without setting up a build pipeline.
+  </Card>
+  <Card title="Server-rendered pages" icon="server">
+    Inject a polyfill script into the `<head>` of a server-rendered HTML page before any application JavaScript runs.
+  </Card>
+</CardGroup>
+
+<Warning>
+  `core-js-bundle` loads the entire `core-js/actual` namespace unconditionally. In a modern build pipeline this is wasteful — use [`core-js`](/packages/core-js) with `@babel/preset-env` or `swc` to include only the polyfills your targets actually need.
+</Warning>
+
+## Custom bundles
+
+If you need a pre-built bundle that is smaller than `core-js/actual` — for example, scoped to specific features or filtered by target browsers — use [`core-js-builder`](/packages/core-js-builder) to generate it.
+
+```js
+import builder from 'core-js-builder';
+
+await builder({
+  modules: ['core-js/actual'],
+  targets: '> 0.5%, not dead',
+  filename: './polyfills.js',
+});
+```

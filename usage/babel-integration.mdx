@@ -1,0 +1,214 @@
+---
+title: "Babel integration"
+description: "Automate polyfill injection using @babel/preset-env and @babel/runtime."
+---
+
+Babel has first-class support for core-js. Rather than manually selecting entry points, you can let Babel analyse your source code and target browsers, then inject exactly the polyfills required — nothing more.
+
+## `@babel/polyfill` (deprecated)
+
+`@babel/polyfill` was a thin wrapper that imported `core-js@2` stable features together with `regenerator-runtime` for generator and async function support. It is **deprecated** and frozen on `core-js@2`.
+
+The exact equivalent with a current core-js version is:
+
+```js
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
+```
+
+Use one of the automated approaches below instead of this manual import.
+
+## `@babel/preset-env`
+
+[`@babel/preset-env`](https://babeljs.io/docs/babel-preset-env) is the standard Babel preset for transpiling modern JavaScript. It integrates with core-js through the `useBuiltIns` option.
+
+### Specifying the core-js version
+
+Always set `corejs` to the exact **minor** version you have installed:
+
+<Warning>
+  Use `corejs: '3.49'` rather than `corejs: 3`. With only a major version, Babel will not inject polyfills that were added in any minor release of core-js — you will silently miss new modules.
+</Warning>
+
+```json babel.config.json
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": "> 0.25%, not dead",
+        "useBuiltIns": "entry",
+        "corejs": "3.49"
+      }
+    ]
+  ]
+}
+```
+
+### `useBuiltIns: 'entry'`
+
+With the `entry` strategy, you place a single core-js import in your application entry point, and Babel replaces it with only the modules that are missing for your target environments.
+
+**Input** — your source file contains one import:
+
+```js
+import 'core-js/stable';
+```
+
+**Output** — Babel rewrites it based on your targets. For a `chrome 71` target, the result is:
+
+```js
+import 'core-js/modules/es.array.unscopables.flat';
+import 'core-js/modules/es.array.unscopables.flat-map';
+import 'core-js/modules/es.object.from-entries';
+import 'core-js/modules/web.immediate';
+```
+
+The transformation works with any combination of core-js entry points. For example, combining multiple namespaces and proposals:
+
+**Input:**
+
+```js
+import 'core-js/es';
+import 'core-js/proposals/set-methods';
+import 'core-js/full/set/map';
+```
+
+**Output** (still targeting `chrome 71`):
+
+```js
+import 'core-js/modules/es.array.unscopables.flat';
+import 'core-js/modules/es.array.unscopables.flat-map';
+import 'core-js/modules/es.object.from-entries';
+import 'core-js/modules/esnext.set.difference';
+import 'core-js/modules/esnext.set.intersection';
+import 'core-js/modules/esnext.set.is-disjoint-from';
+import 'core-js/modules/esnext.set.is-subset-of';
+import 'core-js/modules/esnext.set.is-superset-of';
+import 'core-js/modules/esnext.set.map';
+import 'core-js/modules/esnext.set.symmetric-difference';
+import 'core-js/modules/esnext.set.union';
+```
+
+### `useBuiltIns: 'usage'`
+
+With the `usage` strategy, you do not add any core-js import yourself. Babel scans each file, detects which modern features you use, and inserts the necessary polyfill imports at the top of each file automatically.
+
+**Input** (two separate files):
+
+```js first-file.js
+let set = new Set([1, 2, 3]);
+```
+
+```js second-file.js
+let array = Array.of(1, 2, 3);
+```
+
+**Output** when targeting an environment that includes `IE 11`:
+
+```js first-file.js
+import 'core-js/modules/es.array.iterator';
+import 'core-js/modules/es.object.to-string';
+import 'core-js/modules/es.set';
+
+var set = new Set([1, 2, 3]);
+```
+
+```js second-file.js
+import 'core-js/modules/es.array.of';
+
+var array = Array.of(1, 2, 3);
+```
+
+<Warning>
+  With `useBuiltIns: 'usage'`, do **not** add core-js imports yourself. Babel adds them automatically and duplicating them will result in conflicts.
+</Warning>
+
+**Enabling proposal polyfills in usage mode:**
+
+By default, only stable features are polyfilled. To include proposals, pass an object to `corejs`:
+
+```json babel.config.json
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": "> 0.25%, not dead",
+        "useBuiltIns": "usage",
+        "corejs": { "version": "3.49", "proposals": true }
+      }
+    ]
+  ]
+}
+```
+
+## `@babel/runtime`
+
+[`@babel/runtime`](https://babeljs.io/docs/babel-plugin-transform-runtime) with `corejs: 3` works alongside `core-js-pure`. It automatically rewrites references to modern built-ins in your source into imports from `core-js-pure`, so your code never pollutes the global namespace.
+
+Install the required packages:
+
+```bash
+npm install --save-dev @babel/plugin-transform-runtime
+npm install --save @babel/runtime-corejs3
+```
+
+Configure the plugin:
+
+```json babel.config.json
+{
+  "plugins": [
+    [
+      "@babel/plugin-transform-runtime",
+      {
+        "corejs": 3
+      }
+    ]
+  ]
+}
+```
+
+**Input** — plain idiomatic JavaScript:
+
+```js
+Array.from(new Set([1, 2, 3, 2, 1]));
+[1, [2, 3], [4, [5]]].flat(2);
+Promise.resolve(32).then(x => console.log(x));
+```
+
+**Output** — Babel replaces each reference with a pollution-free import:
+
+```js
+import _from from 'core-js-pure/stable/array/from';
+import _flat from 'core-js-pure/stable/array/flat';
+import _Set from 'core-js-pure/stable/set';
+import _Promise from 'core-js-pure/stable/promise';
+
+_from(new _Set([1, 2, 3, 2, 1]));
+_flat([1, [2, 3], [4, [5]]], 2);
+_Promise.resolve(32).then(x => console.log(x));
+```
+
+To include proposals with `@babel/runtime`:
+
+```json babel.config.json
+{
+  "plugins": [
+    [
+      "@babel/plugin-transform-runtime",
+      {
+        "corejs": { "version": 3, "proposals": true }
+      }
+    ]
+  ]
+}
+```
+
+## Using `@babel/preset-env` and `@babel/runtime` together
+
+<Warning>
+  If you use both `@babel/preset-env` and `@babel/plugin-transform-runtime` in the same project, set the `corejs` option in **only one of them**. Both plugins inject core-js polyfills — enabling `corejs` in both duplicates the functionality and causes conflicts.
+</Warning>
+
+A common safe pattern is to use `@babel/preset-env` with `useBuiltIns` for application-level polyfilling, and omit `corejs` from `@babel/plugin-transform-runtime` entirely (using it only for helper deduplication).
